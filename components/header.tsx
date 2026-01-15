@@ -26,7 +26,7 @@ export function Header() {
   const navLinks = [
     { href: "/", label: t("home") },
     { href: "/search", label: t("drugSearch") },
-    { href: "/interactions", label: t("interactionChecker") },
+    { href: "/interactions", label: t("interactionCheckerNav") },
     { href: "/qr-scanner", label: t("qrScanner") },
   ]
 

@@ -43,7 +43,7 @@ export const translations = {
     // Navigation
     home: "Home",
     drugSearch: "Drug Search",
-    interactionChecker: "Interaction Checker",
+    interactionCheckerNav: "Interaction Checker",
     qrScanner: "QR Scanner",
     backToHome: "Back to Home",
 
@@ -119,7 +119,7 @@ export const translations = {
     // Navigation
     home: "الرئيسية",
     drugSearch: "بحث الأدوية",
-    interactionChecker: "فاحص التفاعلات",
+    interactionCheckerNav: "فاحص التفاعلات",
     qrScanner: "ماسح QR",
     backToHome: "العودة للرئيسية",
 
@@ -195,7 +195,7 @@ export const translations = {
     // Navigation
     home: "سەرەکی",
     drugSearch: "گەڕانی دەرمان",
-    interactionChecker: "پشکنەری کارلێک",
+    interactionCheckerNav: "پشکنەری کارلێک",
     qrScanner: "سکانەری QR",
     backToHome: "گەڕانەوە بۆ سەرەکی",
 
