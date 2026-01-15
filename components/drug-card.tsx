@@ -111,7 +111,7 @@ export function DrugCard({ drug }: DrugCardProps) {
 
         {/* View Details Button */}
         <div className="mt-auto pt-4">
-          <Link href={`/drug/${drug.id || '#'}`}>
+        <Link href={`/drug/${encodeURIComponent(typeof drug.name === "string" ? drug.name : drug.name.en)}`}>  
             <Button variant="outline" className={`w-full gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
               {t("viewDetails")}
               <ArrowRight className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
