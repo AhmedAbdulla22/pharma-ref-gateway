@@ -1,10 +1,10 @@
 import { Suspense } from "react"
-import { HomePage } from "@/components/home-page"
+import { DrugSearchPage } from "@/components/drug-search-page"
 
 export default function Page() {
   return (
     <Suspense fallback={null}>
-      <HomePage />
+      <DrugSearchPage />
     </Suspense>
   )
 }

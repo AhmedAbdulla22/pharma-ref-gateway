@@ -1,10 +1,10 @@
 import { Suspense } from "react"
-import { HomePage } from "@/components/home-page"
+import { QRScannerPage } from "@/components/qr-scanner-page"
 
 export default function Page() {
   return (
     <Suspense fallback={null}>
-      <HomePage />
+      <QRScannerPage />
     </Suspense>
   )
 }

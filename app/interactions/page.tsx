@@ -1,10 +1,10 @@
 import { Suspense } from "react"
-import { HomePage } from "@/components/home-page"
+import { InteractionsPage } from "@/components/interactions-page"
 
 export default function Page() {
   return (
     <Suspense fallback={null}>
-      <HomePage />
+      <InteractionsPage />
     </Suspense>
   )
 }
