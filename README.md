@@ -80,7 +80,9 @@ The project implements a **Defensive Data Layer** to handle the non-deterministi
 
 This project was developed as a final year graduation project for a **B.Sc. in Computer Science**. It aims to solve the accessibility gap in pharmaceutical information for Kurdish and Arabic speakers by leveraging modern LLM capabilities.
 
-**Developer:** Ahmed Abdullah Ahmed
+**Vibe-Coders:**
+- Ahmed Abdullah Ahmed
+- Bawan Sameer Ibrahim
 **Year:** 2026
 
 ---
