@@ -27,8 +27,8 @@ export function QRScannerPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  const handleManualSearch = async () => {
-    if (!manualCode.trim()) return
+  const handleSmartSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim()) return
 
     setIsLoading(true)
     setSearchResult(null)
@@ -37,7 +37,8 @@ export function QRScannerPage() {
       const response = await fetch("/api/drug-lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrCode: manualCode.trim(), language }),
+        // Notice we use 'qrCode' to trigger your specific AI logic
+        body: JSON.stringify({ qrCode: searchTerm.trim(), language }),
       })
 
       const data = await response.json()
@@ -47,20 +48,25 @@ export function QRScannerPage() {
           found: true,
           drug: {
             id: data.drug.id,
-            name: data.drug.name[language] || data.drug.name,
-            genericName: data.drug.genericName,
+            // Extract the name based on current language
+            name: typeof data.drug.name === 'string' ? data.drug.name : data.drug.name[language],
+            genericName: data.drug.scientificName || data.drug.genericName,
             category: data.drug.category,
           },
         })
       } else {
         setSearchResult({ found: false })
       }
-    } catch {
+    } catch (err) {
+      console.error("Lookup error:", err)
       setSearchResult({ found: false })
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Wrapper for the manual button
+  const handleManualSearch = () => handleSmartSearch(manualCode);
 
   const startCamera = async () => {
     try {
@@ -123,9 +129,14 @@ export function QRScannerPage() {
           const code = jsQR(imageData.data, imageData.width, imageData.height);
           
           if (code) {
-            setManualCode(code.data); // Puts the scanned code in the input
-            handleManualSearch();    // Automatically triggers the API lookup
-            stopCamera();            // Stops the camera once found
+            const scannedText = code.data;
+            setManualCode(scannedText); 
+            
+            // Stop camera immediately
+            stopCamera(); 
+
+            // Directly call the search function with the scanned text
+            handleSmartSearch(scannedText); 
           }
         }
       }
