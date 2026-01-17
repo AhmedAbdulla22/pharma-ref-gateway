@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { QrCode, Camera, CameraOff, Search, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import jsQR from "jsqr"
 
 interface DrugResult {
   id: string
@@ -63,20 +64,29 @@ export function QRScannerPage() {
 
   const startCamera = async () => {
     try {
+      setCameraError(false);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
-      })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        streamRef.current = stream
-        setCameraActive(true)
-        setCameraError(false)
-      }
-    } catch {
-      setCameraError(true)
-      setCameraActive(false)
+      });
+      
+      // Store the stream first
+      streamRef.current = stream;
+      setCameraActive(true);
+
+      // Give React a tiny millisecond to render the <video> element
+      // then attach the stream
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+      
+    } catch (err) {
+      console.error("Camera access error:", err);
+      setCameraError(true);
+      setCameraActive(false);
     }
-  }
+  };
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -93,6 +103,41 @@ export function QRScannerPage() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    let requestRef: number;
+    
+    const scan = () => {
+      if (cameraActive && videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        const video = videoRef.current;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          
+          // This is where the magic happens
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+          
+          if (code) {
+            setManualCode(code.data); // Puts the scanned code in the input
+            handleManualSearch();    // Automatically triggers the API lookup
+            stopCamera();            // Stops the camera once found
+          }
+        }
+      }
+      requestRef = requestAnimationFrame(scan);
+    };
+
+    if (cameraActive) {
+      requestRef = requestAnimationFrame(scan);
+    }
+    
+    return () => cancelAnimationFrame(requestRef);
+  }, [cameraActive]);
 
   return (
     <PageWrapper>
@@ -118,12 +163,20 @@ export function QRScannerPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-              {cameraActive ? (
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-              ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`w-full h-full object-cover ${cameraActive ? "block" : "hidden"}`}
+              />
+              
+              {!cameraActive && (
                 <div className="text-center space-y-4 p-8">
                   <QrCode className="h-16 w-16 mx-auto text-muted-foreground/50" />
-                  <p className="text-muted-foreground">{cameraError ? t("cameraError") : t("qrInstructions")}</p>
+                  <p className="text-muted-foreground">
+                    {cameraError ? t("cameraError") : t("qrInstructions")}
+                  </p>
                 </div>
               )}
 
