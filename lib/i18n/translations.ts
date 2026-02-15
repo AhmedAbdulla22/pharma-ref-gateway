@@ -70,6 +70,9 @@ export const translations = {
     // Drug detail
     drugDetails: "Drug Details",
     viewDetails: "View Details",
+    // Medical Disclaimer
+    medicalDisclaimer: "Medical Disclaimer",
+    disclaimerText: "The information provided, including AI summaries and raw FDA data, is for educational purposes only. It is not a substitute for professional medical advice. Always consult a physician before making medical decisions.",
 
     // API-powered features
     noResults: "No results found",
@@ -146,6 +149,9 @@ export const translations = {
     // Drug detail
     drugDetails: "تفاصيل الدواء",
     viewDetails: "عرض التفاصيل",
+    // Medical Disclaimer
+    medicalDisclaimer: "إخلاء مسؤولية طبي",
+    disclaimerText: "المعلومات المقدمة، بما في ذلك ملخصات الذكاء الاصطناعي وبيانات FDA، هي لأغراض تعليمية فقط. وليست بديلاً عن الاستشارة الطبية المهنية. استشر الطبيب دائماً قبل اتخاذ أي قرارات طبية.",
 
     // API-powered features
     noResults: "لم يتم العثور على نتائج",
@@ -222,6 +228,9 @@ export const translations = {
     // Drug detail
     drugDetails: "وردەکاری دەرمان",
     viewDetails: "بینینی وردەکاری",
+    // Medical Disclaimer
+    medicalDisclaimer: "بەرپرسیارێتی پزیشکی",
+    disclaimerText: "ئەو زانیارییانەی دابینکراون، لەوانە کورتەی زیرەکی دەستکرد و داتاکانی FDA، تەنها بۆ مەبەستی پەروەردەیین. جێگرەوەی ئامۆژگاری پزیشکی نین. هەمیشە پێش بڕیاردانی پزیشکی ڕاوێژ بە پزیشک بکە.",
 
     // API-powered features
     noResults: "هیچ ئەنجامێک نەدۆزرایەوە",
