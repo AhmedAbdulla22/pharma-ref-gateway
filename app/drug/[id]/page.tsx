@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { DrugChatbot } from "@/components/drug-chatbot"
 import { useParams } from "next/navigation"
 import { PageWrapper } from "@/components/page-wrapper"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -24,7 +25,8 @@ import {
   Repeat,
   Package,
   ShieldCheck,
-  Stethoscope
+  Stethoscope,
+  Baby
 } from "lucide-react"
 import Link from "next/link"
 
@@ -102,6 +104,7 @@ export default function DrugDetailPage() {
   const getAiData = (section: any) => section[language] || section['en'] || []
 
   return (
+    <>
     <PageWrapper>
       <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4">
         
@@ -130,7 +133,7 @@ export default function DrugDetailPage() {
         <div className="sticky top-4 z-40 bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-full px-2 py-1.5 shadow-2xl flex items-center justify-between">
            <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar ${isRTL ? "flex-row-reverse" : ""}`}>
               <Button variant="ghost" size="sm" onClick={() => scrollTo('ai-summary')} className="rounded-full text-xs text-cyan-400 hover:bg-cyan-400/10">
-                <Sparkles className="h-3.5 w-3.5 mr-1" /> Summary
+                <Sparkles className="h-3.5 w-3.5 mr-1" /> AI Summary
               </Button>
               <Button variant="ghost" size="sm" onClick={() => scrollTo('clinical')} className="rounded-full text-xs text-slate-400">
                 <FileText className="h-3.5 w-3.5 mr-1" /> Clinical
@@ -158,6 +161,14 @@ export default function DrugDetailPage() {
             <SummaryCard title="Safety Alerts" icon={<AlertTriangle className="text-red-500" />} data={getAiData(drug.aiSummary.warnings)} border="border-t-red-500" />
             <SummaryCard title="Avoid If..." icon={<ShieldAlert className="text-pink-600" />} data={getAiData(drug.aiSummary.contraindications)} border="border-t-pink-600" />
             <SummaryCard title="Interactions" icon={<Repeat className="text-purple-500" />} data={getAiData(drug.aiSummary.interactions)} border="border-t-purple-500" />
+            <div className="md:col-span-2 lg:col-span-3">
+              <SummaryCard 
+                title="Pregnancy & Nursing" 
+                icon={<Baby className="text-rose-400" />} 
+                data={getAiData(drug.aiSummary.pregnancy)} 
+                border="border-t-rose-400 bg-rose-950/10" 
+              />
+            </div>
           </div>
         </div>
 
@@ -227,6 +238,11 @@ export default function DrugDetailPage() {
         </Card>
       </div>
     </PageWrapper>
+    
+    {drug && (
+        <DrugChatbot drugName={drug.name} drugContext={drug.rawDetails} />
+      )}
+    </>
   )
 }
 
