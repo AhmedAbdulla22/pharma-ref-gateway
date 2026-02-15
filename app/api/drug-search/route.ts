@@ -107,8 +107,7 @@ function mapFdaResults(results: any[]) {
       uses: { en: ["View Details >"], ar: ["عرض التفاصيل >"], ku: ["بینینی وردەکاری >"] },
       sideEffects: { en: [], ar: [], ku: [] },
       warnings: { en: [], ar: [], ku: [] },
-      dosage: { en: dosageForm, ar: dosageForm, ku: dosageForm },
-      qrCode: `FDA-${id}`
+      dosage: { en: dosageForm, ar: dosageForm, ku: dosageForm }
     };
   });
 }

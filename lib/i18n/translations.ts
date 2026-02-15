@@ -44,7 +44,6 @@ export const translations = {
     home: "Home",
     drugSearch: "Drug Search",
     interactionCheckerNav: "Interaction Checker",
-    qrScanner: "QR Scanner",
     backToHome: "Back to Home",
 
     // Home page
@@ -54,18 +53,7 @@ export const translations = {
     searchDrugsDesc: "Find detailed information about medications",
     interactionCheckerTitle: "Check Interactions",
     interactionCheckerDesc: "Verify drug-to-drug interactions",
-    qrScannerTitle: "Scan QR Code",
-    qrScannerDesc: "Quickly find drug info by scanning",
 
-    // QR Scanner
-    scanQRCode: "Scan QR Code",
-    qrInstructions: "Point your camera at a drug QR code or enter the code manually",
-    enterManually: "Enter Code Manually",
-    qrCodePlaceholder: "Enter drug code (e.g., ASP-001)",
-    searchByCode: "Search by Code",
-    cameraError: "Camera access denied. Please allow camera access to scan QR codes.",
-    startCamera: "Start Camera",
-    stopCamera: "Stop Camera",
 
     // Drug detail
     drugDetails: "Drug Details",
@@ -123,28 +111,16 @@ export const translations = {
     home: "الرئيسية",
     drugSearch: "بحث الأدوية",
     interactionCheckerNav: "فاحص التفاعلات",
-    qrScanner: "ماسح QR",
     backToHome: "العودة للرئيسية",
 
     // Home page
-    welcomeTitle: "مرحباً ببوابة المرجع الصيدلاني",
-    welcomeDescription: "أداتك الشاملة للمرجع الصيدلاني",
+    welcomeTitle: "مرحباً بك في بوابة المرجع الصيدلاني",
+    welcomeDescription: "أداة المرجع الصيدلاني الشاملة الخاصة بك",
     searchDrugsTitle: "بحث الأدوية",
     searchDrugsDesc: "ابحث عن معلومات تفصيلية عن الأدوية",
     interactionCheckerTitle: "فحص التفاعلات",
     interactionCheckerDesc: "تحقق من التفاعلات بين الأدوية",
-    qrScannerTitle: "مسح رمز QR",
-    qrScannerDesc: "اعثر على معلومات الدواء بسرعة عبر المسح",
 
-    // QR Scanner
-    scanQRCode: "مسح رمز QR",
-    qrInstructions: "وجه الكاميرا نحو رمز QR للدواء أو أدخل الرمز يدوياً",
-    enterManually: "إدخال الرمز يدوياً",
-    qrCodePlaceholder: "أدخل رمز الدواء (مثل: ASP-001)",
-    searchByCode: "بحث بالرمز",
-    cameraError: "تم رفض الوصول للكاميرا. يرجى السماح بالوصول للكاميرا لمسح رموز QR.",
-    startCamera: "تشغيل الكاميرا",
-    stopCamera: "إيقاف الكاميرا",
 
     // Drug detail
     drugDetails: "تفاصيل الدواء",
@@ -202,7 +178,6 @@ export const translations = {
     home: "سەرەکی",
     drugSearch: "گەڕانی دەرمان",
     interactionCheckerNav: "پشکنەری کارلێک",
-    qrScanner: "سکانەری QR",
     backToHome: "گەڕانەوە بۆ سەرەکی",
 
     // Home page
@@ -212,18 +187,7 @@ export const translations = {
     searchDrugsDesc: "زانیاری وردی دەرمان بدۆزەرەوە",
     interactionCheckerTitle: "پشکنینی کارلێک",
     interactionCheckerDesc: "کارلێکی نێوان دەرمانەکان بپشکنە",
-    qrScannerTitle: "سکانی کۆدی QR",
-    qrScannerDesc: "بە خێرایی زانیاری دەرمان بدۆزەرەوە بە سکان",
 
-    // QR Scanner
-    scanQRCode: "سکانی کۆدی QR",
-    qrInstructions: "کامێراکەت ڕووی کۆدی QR ی دەرمان بکە یان کۆدەکە بە دەست بنووسە",
-    enterManually: "کۆد بە دەست بنووسە",
-    qrCodePlaceholder: "کۆدی دەرمان بنووسە (وەک: ASP-001)",
-    searchByCode: "گەڕان بە کۆد",
-    cameraError: "دەستگەیشتن بە کامێرا ڕەتکرایەوە. تکایە ڕێگە بدە بە کامێرا بۆ سکانی کۆدەکانی QR.",
-    startCamera: "دەستپێکردنی کامێرا",
-    stopCamera: "وەستاندنی کامێرا",
 
     // Drug detail
     drugDetails: "وردەکاری دەرمان",

@@ -154,8 +154,7 @@ export async function POST(req: Request) {
         },
         supply: getSpecificField(item, ['how_supplied']) || "N/A",
         route: openfda.route?.[0] || "Oral"
-      },
-      qrCode: `FDA-${item.id}`
+      }
     };
 
     return NextResponse.json({ found: true, drug });

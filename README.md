@@ -1,6 +1,6 @@
 # 💊 PharmRef Gateway (بوابة المرجع الصيدلاني)
 
-**PharmRef Gateway** is a modern, AI-powered pharmaceutical reference platform designed to provide quick, reliable, and multilingual drug information. Built specifically for the healthcare context in Iraq, it supports **English, Arabic, and Kurdish (Sorani)**, featuring a built-in drug interaction checker and QR code scanner.
+**PharmRef Gateway** is a modern, AI-powered pharmaceutical reference platform designed to provide quick, reliable, and multilingual drug information. Built specifically for the healthcare context in Iraq, it supports **English, Arabic, and Kurdish (Sorani)**, featuring a built-in drug interaction checker.
 
 🚀 **Live Demo:** [pharma-ref-gateway.vercel.app](https://pharma-ref-gateway.vercel.app)
 
@@ -11,7 +11,6 @@
 * **🔍 AI-Powered Search:** Intelligent drug retrieval using **Groq (Llama 3.3-70B)** for high-speed, medically accurate data.
 * **🌍 Triple-Language Support:** Full RTL (Right-to-Left) support for Arabic and Kurdish, alongside English.
 * **🛡️ Interaction Checker:** Analyze potential risks between multiple medications with severity levels (Critical, Moderate, Safe).
-* **📸 QR Scanner:** Instantly access drug details by scanning pharmaceutical QR codes.
 * **🌓 Adaptive UI:** Clinical-grade "Medical Blue" theme with full Dark Mode support using OKLCH color space.
 * **📱 Mobile First:** Optimized for use on-the-go by pharmacists and medical students.
 

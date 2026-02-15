@@ -23,11 +23,10 @@ export function Header() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const navLinks = [
+  const navigation = [
     { href: "/", label: t("home") },
     { href: "/search", label: t("drugSearch") },
     { href: "/interactions", label: t("interactionCheckerNav") },
-    { href: "/qr-scanner", label: t("qrScanner") },
   ]
 
   return (
@@ -42,7 +41,7 @@ export function Header() {
         </Link>
 
         <nav className={`hidden md:flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-          {navLinks.map((link) => (
+          {navigation.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -100,7 +99,7 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side={isRTL ? "left" : "right"} className="w-72">
               <nav className="flex flex-col gap-2 mt-8">
-                {navLinks.map((link) => (
+                {navigation.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

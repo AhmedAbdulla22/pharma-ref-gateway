@@ -3,7 +3,7 @@
 import { PageWrapper } from "@/components/page-wrapper"
 import { useLanguage } from "@/components/providers/language-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Zap, QrCode } from "lucide-react"
+import { Search, Zap } from "lucide-react"
 import Link from "next/link"
 
 export function HomePage() {
@@ -26,14 +26,6 @@ export function HomePage() {
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
     },
-    {
-      href: "/qr-scanner",
-      icon: QrCode,
-      title: t("qrScannerTitle"),
-      description: t("qrScannerDesc"),
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/10",
-    },
   ]
 
   return (
@@ -46,7 +38,7 @@ export function HomePage() {
         </section>
 
         {/* Feature Cards */}
-        <section className="grid gap-6 md:grid-cols-3">
+        <section className="grid gap-6 md:grid-cols-2">
           {features.map((feature) => (
             <Link key={feature.href} href={feature.href}>
               <Card className="h-full transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 cursor-pointer">
