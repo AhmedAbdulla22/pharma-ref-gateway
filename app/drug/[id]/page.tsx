@@ -86,7 +86,7 @@ export default function DrugDetailPage() {
     <PageWrapper>
       <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-cyan-500" />
-        <p className="text-slate-400">Processing FDA Label with Llama 3.3 AI...</p>
+        <p className="text-muted-foreground">Processing FDA Label with Llama 3.3 AI...</p>
       </div>
     </PageWrapper>
   )
@@ -95,8 +95,8 @@ export default function DrugDetailPage() {
     <PageWrapper>
       <div className="max-w-md mx-auto text-center py-20">
         <AlertCircle className="h-16 w-16 mx-auto text-red-500/50 mb-6" />
-        <h2 className="text-2xl font-bold text-white mb-2">Drug Not Found</h2>
-        <Link href="/search"><Button className="mt-4 bg-cyan-600">Back to Search</Button></Link>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Drug Not Found</h2>
+        <Link href="/search"><Button className="mt-4 bg-primary">Back to Search</Button></Link>
       </div>
     </PageWrapper>
   )
@@ -111,45 +111,45 @@ export default function DrugDetailPage() {
         {/* --- HEADER --- */}
         <div className="space-y-6">
           <Link href="/search">
-            <Button variant="ghost" size="sm" className="gap-2 text-slate-400 hover:text-cyan-400 pl-0">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary pl-0">
               <ArrowLeft className="h-4 w-4" /> {t("backToHome")}
             </Button>
           </Link>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-4xl font-extrabold text-white tracking-tight">{drug.name}</h1>
-              <div className="flex items-center gap-2 text-slate-400 font-mono uppercase text-sm">
+              <h1 className="text-4xl font-extrabold text-foreground tracking-tight">{drug.name}</h1>
+              <div className="flex items-center gap-2 text-muted-foreground font-mono uppercase text-sm">
                 <Beaker className="h-4 w-4" /> {drug.genericName}
               </div>
             </div>
-            <Badge className="bg-cyan-950/50 text-cyan-400 border-cyan-800 px-3 py-1">
+            <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
               {drug.category}
             </Badge>
           </div>
         </div>
 
         {/* --- STICKY SHORTCUT NAVIGATION --- */}
-        <div className="sticky top-4 z-40 bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-full px-2 py-1.5 shadow-2xl flex items-center justify-between">
+        <div className="sticky top-4 z-40 bg-background/90 backdrop-blur-md border border-border rounded-full px-2 py-1.5 shadow-2xl flex items-center justify-between">
            <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar ${isRTL ? "flex-row-reverse" : ""}`}>
-              <Button variant="ghost" size="sm" onClick={() => scrollTo('ai-summary')} className="rounded-full text-xs text-cyan-400 hover:bg-cyan-400/10">
+              <Button variant="ghost" size="sm" onClick={() => scrollTo('ai-summary')} className="rounded-full text-xs text-primary hover:bg-primary/10">
                 <Sparkles className="h-3.5 w-3.5 mr-1" /> AI Summary
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => scrollTo('clinical')} className="rounded-full text-xs text-slate-400">
+              <Button variant="ghost" size="sm" onClick={() => scrollTo('clinical')} className="rounded-full text-xs text-muted-foreground">
                 <FileText className="h-3.5 w-3.5 mr-1" /> Clinical
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => scrollTo('safety')} className="rounded-full text-xs text-slate-400">
+              <Button variant="ghost" size="sm" onClick={() => scrollTo('safety')} className="rounded-full text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Safety
               </Button>
            </div>
-           <div className="hidden md:block px-4 border-l border-slate-800 text-[10px] text-slate-500 font-mono">
+           <div className="hidden md:block px-4 border-l border-border text-[10px] text-muted-foreground font-mono">
               ID: {drug.id.substring(0,8)}
            </div>
         </div>
 
         {/* --- SECTION 1: AI SMART SUMMARY --- */}
         <div id="ai-summary" className="space-y-6 pt-4">
-          <div className={`flex items-center gap-2 text-cyan-400 border-b border-cyan-900/50 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-2 text-primary border-b border-primary/20 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
             <Sparkles className="h-5 w-5" />
             <h2 className="text-xl font-bold tracking-wide uppercase">AI Smart Summary</h2>
           </div>
@@ -166,17 +166,17 @@ export default function DrugDetailPage() {
                 title="Pregnancy & Nursing" 
                 icon={<Baby className="text-rose-400" />} 
                 data={getAiData(drug.aiSummary.pregnancy)} 
-                border="border-t-rose-400 bg-rose-950/10" 
+                border="border-t-rose-400 bg-muted/10" 
               />
             </div>
           </div>
         </div>
 
-        <Separator className="bg-slate-800/50 my-10" />
+        <Separator className="bg-border my-10" />
 
         {/* --- SECTION 2: FULL CLINICAL REFERENCE --- */}
         <div id="clinical" className="space-y-8">
-          <div className={`flex items-center gap-2 text-slate-500 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-2 text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
             <Stethoscope className="h-5 w-5" />
             <h2 className="text-xl font-bold tracking-wide uppercase">FDA Clinical Reference</h2>
           </div>
@@ -192,22 +192,22 @@ export default function DrugDetailPage() {
 
             {/* Side Column: Technical Specs */}
             <div className="lg:col-span-4 space-y-6">
-               <Card className="bg-slate-900/30 border-slate-800">
-                  <CardHeader><CardTitle className="text-sm text-slate-400 uppercase tracking-widest">Ingredients</CardTitle></CardHeader>
+               <Card className="bg-card/30 border-border">
+                  <CardHeader><CardTitle className="text-sm text-muted-foreground uppercase tracking-widest">Ingredients</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                      <div>
-                        <span className="text-[10px] font-bold text-slate-600 uppercase">Active</span>
-                        <p className="text-sm text-slate-300">{drug.rawDetails.ingredients.active}</p>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Active</span>
+                        <p className="text-sm text-foreground">{drug.rawDetails.ingredients.active}</p>
                      </div>
                      <div>
-                        <span className="text-[10px] font-bold text-slate-600 uppercase">Inactive</span>
-                        <p className="text-xs text-slate-500">{drug.rawDetails.ingredients.inactive}</p>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Inactive</span>
+                        <p className="text-xs text-muted-foreground">{drug.rawDetails.ingredients.inactive}</p>
                      </div>
                   </CardContent>
                </Card>
 
                <div id="safety" className="space-y-4 pt-4">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Population Safety</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Population Safety</h3>
                   <div className="grid gap-4">
                      <SafetyCard title="Pediatric" content={drug.rawDetails.pediatric} />
                      <SafetyCard title="Geriatric" content={drug.rawDetails.geriatric} />
@@ -215,11 +215,11 @@ export default function DrugDetailPage() {
                   </div>
                </div>
 
-               <Card className="bg-cyan-950/10 border-cyan-900/20">
+               <Card className="bg-primary/10 border-primary/20">
                   <CardContent className="p-4 space-y-3">
-                     <div className="flex items-center gap-2 text-cyan-500"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase">Supply & Route</span></div>
-                     <p className="text-xs text-slate-400 italic">Route: {drug.rawDetails.route}</p>
-                     <p className="text-xs text-slate-400">{drug.rawDetails.supply}</p>
+                     <div className="flex items-center gap-2 text-primary"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase">Supply & Route</span></div>
+                     <p className="text-xs text-muted-foreground italic">Route: {drug.rawDetails.route}</p>
+                     <p className="text-xs text-muted-foreground">{drug.rawDetails.supply}</p>
                   </CardContent>
                </Card>
             </div>
@@ -232,7 +232,7 @@ export default function DrugDetailPage() {
             <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-1" />
             <div className="space-y-2">
               <h4 className="text-red-500 font-bold uppercase text-xs tracking-widest">{t("medicalDisclaimer")}</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed uppercase tracking-tight">{t("disclaimerText")}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed uppercase tracking-tight">{t("disclaimerText")}</p>
             </div>
           </CardContent>
         </Card>
@@ -250,16 +250,16 @@ export default function DrugDetailPage() {
 
 function SummaryCard({ title, icon, data, border }: any) {
   return (
-    <Card className={`bg-slate-950/40 border-slate-800 border-t-2 ${border} shadow-lg hover:shadow-cyan-900/5 transition-all`}>
+    <Card className={`bg-card/40 border-border border-t-2 ${border} shadow-lg hover:shadow-primary/5 transition-all`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-2">
+        <CardTitle className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-2">
           {icon} {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">
           {data.map((point: string, i: number) => (
-            <li key={i} className="text-[13px] text-slate-300 leading-snug">• {point}</li>
+            <li key={i} className="text-[13px] text-foreground leading-snug">• {point}</li>
           ))}
         </ul>
       </CardContent>
@@ -273,7 +273,7 @@ function ClinicalBlock({ title, icon, content, color }: any) {
       <h4 className={`text-sm font-bold flex items-center gap-2 ${color} italic`}>
         {icon} {title}
       </h4>
-      <p className="text-sm text-slate-400 leading-relaxed bg-slate-900/20 p-4 rounded-xl border border-slate-800/50">
+      <p className="text-sm text-muted-foreground leading-relaxed bg-muted/20 p-4 rounded-xl border border-border/50">
         {content}
       </p>
     </div>
@@ -282,9 +282,9 @@ function ClinicalBlock({ title, icon, content, color }: any) {
 
 function SafetyCard({ title, content }: any) {
   return (
-    <div className="p-3 rounded-lg bg-slate-950 border border-slate-900">
-      <h5 className="text-[10px] font-bold text-slate-400 mb-1">{title} Use</h5>
-      <p className="text-[11px] text-slate-500 line-clamp-3 hover:line-clamp-none cursor-pointer">{content}</p>
+    <div className="p-3 rounded-lg bg-card border-border">
+      <h5 className="text-[10px] font-bold text-muted-foreground mb-1">{title} Use</h5>
+      <p className="text-[11px] text-muted-foreground line-clamp-3 hover:line-clamp-none cursor-pointer">{content}</p>
     </div>
   )
 }

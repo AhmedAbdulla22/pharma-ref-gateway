@@ -80,34 +80,34 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
       
       {/* --- 1. OPEN STATE: CHAT WINDOW --- */}
       {isOpen && (
-        <Card className="w-[90vw] md:w-[380px] h-[500px] shadow-2xl bg-slate-950 border-slate-800 flex flex-col mb-4 animate-in slide-in-from-bottom-5 duration-300 rounded-xl overflow-hidden ring-1 ring-slate-800">
+        <Card className="w-[90vw] md:w-[380px] h-[500px] shadow-2xl bg-card border-border flex flex-col mb-4 animate-in slide-in-from-bottom-5 duration-300 rounded-xl overflow-hidden ring-1 ring-border">
             {/* Header */}
-            <CardHeader className="p-4 bg-gradient-to-r from-cyan-950/50 to-slate-900 border-b border-slate-800 flex flex-row items-center justify-between">
+            <CardHeader className="p-4 bg-gradient-to-r from-primary/50 to-muted border-b border-border flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                   <Bot className="h-6 w-6 text-cyan-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                     AI Pharmacist <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
                   </CardTitle>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">FDA Data Context Active</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">FDA Data Context Active</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full">
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full">
                 <X className="h-5 w-5" />
               </Button>
             </CardHeader>
 
             {/* Chat Area */}
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 bg-slate-950/50">
+            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-border bg-card/50">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div 
                     className={`max-w-[85%] p-3 text-sm leading-relaxed shadow-sm ${
                       msg.role === "user" 
                         ? "bg-cyan-600 text-white rounded-2xl rounded-tr-sm" 
-                        : "bg-slate-900 border border-slate-800 text-slate-200 rounded-2xl rounded-tl-sm"
+                        : "bg-muted border-border text-muted-foreground rounded-2xl rounded-tl-sm"
                     }`}
                   >
                     {msg.content}
@@ -116,9 +116,9 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl rounded-tl-sm flex gap-2 items-center">
+                  <div className="bg-muted border-border p-3 rounded-2xl rounded-tl-sm flex gap-2 items-center">
                     <Loader2 className="h-4 w-4 animate-spin text-cyan-500" />
-                    <span className="text-xs text-slate-500 italic">Reading label...</span>
+                    <span className="text-xs text-muted-foreground italic">Reading label...</span>
                   </div>
                 </div>
               )}
@@ -126,13 +126,13 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
             </CardContent>
 
             {/* Input Area */}
-            <CardFooter className="p-3 bg-slate-900 border-t border-slate-800">
+            <CardFooter className="p-3 bg-muted border-t border-border">
               <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full gap-2">
                 <Input 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={isRTL ? "اكتب سؤالك..." : "Type your question..."}
-                  className={`bg-slate-950 border-slate-700 focus-visible:ring-cyan-500/50 placeholder:text-slate-600 ${isRTL ? "text-right" : ""}`}
+                  className={`bg-background border-border focus-visible:ring-ring/50 placeholder:text-muted-foreground ${isRTL ? "text-right" : ""}`}
                   dir={isRTL ? "rtl" : "ltr"}
                 />
                 <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="bg-cyan-600 hover:bg-cyan-500 text-white shrink-0">
@@ -149,9 +149,9 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
           
           {/* A. The "Hint" Bubble (Visible initially or on hover) */}
           <div className={`
-             bg-white text-slate-900 text-xs font-bold py-2 px-4 rounded-xl shadow-xl mb-1 
+             bg-card text-foreground text-xs font-bold py-2 px-4 rounded-xl shadow-xl mb-1 
              transform transition-all duration-300 origin-bottom-right
-             flex items-center gap-2 border border-slate-200
+             flex items-center gap-2 border border-border
              ${showHint ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto"}
           `}>
              <Bot className="h-4 w-4 text-cyan-600" />
@@ -161,23 +161,23 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
                 `Questions about ${drugName.substring(0, 15)}...?`}
              </span>
              {/* Tiny Triangle pointing down */}
-             <div className="absolute -bottom-1 right-6 w-2 h-2 bg-white rotate-45 border-r border-b border-slate-200"></div>
+             <div className="absolute -bottom-1 right-6 w-2 h-2 bg-background rotate-45 border-r border-b border-border"></div>
           </div>
 
           {/* B. The Main "Pill" Button */}
           <Button
             onClick={() => setIsOpen(true)}
-            className="h-14 pl-4 pr-6 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.3)] bg-cyan-600 hover:bg-cyan-500 text-white border-2 border-slate-900 transition-all hover:scale-105 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
+            className="h-14 pl-4 pr-6 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.3)] bg-primary hover:bg-primary/90 text-foreground border-2 border-border transition-all hover:scale-105 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
           >
             {/* Animated Icon Container */}
             <div className="relative">
-               <div className="absolute inset-0 bg-white rounded-full opacity-20 animate-ping"></div>
+               <div className="absolute inset-0 bg-foreground rounded-full opacity-20 animate-ping"></div>
                <MessageCircle className="h-6 w-6 relative z-10" />
             </div>
             
             {/* Text Label */}
             <div className="flex flex-col items-start">
-               <span className="text-[10px] uppercase font-bold text-cyan-100 leading-none mb-0.5 opacity-80">
+               <span className="text-[10px] uppercase font-bold text-primary-foreground leading-none mb-0.5 opacity-80">
                  {language === 'ar' ? "مساعد" : language === 'ku' ? "یاریدەدەر" : "AI Assistant"}
                </span>
                <span className="text-sm font-bold leading-none">

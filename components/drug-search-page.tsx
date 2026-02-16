@@ -58,13 +58,13 @@ export function DrugSearchPage() {
             <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 mb-4 border border-cyan-500/20">
               <Database className="h-8 w-8 text-cyan-400" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
               {t("drugSearch")}
             </h1>
-            <p className="text-lg text-slate-400">
+            <p className="text-lg text-muted-foreground">
                {language === "en" ? "Access 100,000+ FDA records instantly." : 
-                language === "ar" ? "وصول فوري لأكثر من 100,000 سجل طبي" : 
-                "دەستگەیشتنی خێرا بە زیاتر لە 100,000 تۆماری پزیشکی"}
+                language === "ar" ? "وصول فوري لأكثر من 100,000 سجل طبي من FDA" : 
+                "دەستگەیشتنی خێرا بە زیاتر لە 100,000 تۆماری پزیشکی لە FDA"}
             </p>
           </div>
 
@@ -79,7 +79,7 @@ export function DrugSearchPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className={`h-14 bg-slate-950/90 border-slate-800 text-lg focus-visible:ring-cyan-500/50 rounded-none ${isRTL ? "rounded-r-full text-right pr-6" : "rounded-l-full pl-6"}`}
+                className={`h-14 bg-background/90 border-border text-lg focus-visible:ring-ring/50 rounded-none ${isRTL ? "rounded-r-full text-right pr-6" : "rounded-l-full pl-6"}`}
                 dir={isRTL ? "rtl" : "ltr"}
               />
               <Button
@@ -100,14 +100,14 @@ export function DrugSearchPage() {
           {isLoading && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
               {[1,2,3].map(i => (
-                <div key={i} className="h-48 rounded-xl bg-slate-900/50 border border-slate-800" />
+                <div key={i} className="h-48 rounded-xl bg-muted/50 border-border" />
               ))}
             </div>
           )}
 
           {!isLoading && hasSearched && searchResults.length > 0 && (
              <div className="space-y-6">
-               <div className="flex items-center gap-2 text-slate-500 uppercase text-xs font-bold tracking-widest">
+               <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-bold tracking-widest">
                   <Sparkles className="h-4 w-4 text-cyan-500" /> Found {searchResults.length} results
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -119,9 +119,9 @@ export function DrugSearchPage() {
           )}
 
           {!isLoading && hasSearched && searchResults.length === 0 && !error && (
-            <div className="text-center py-20 bg-slate-950/30 rounded-3xl border border-slate-900 border-dashed">
-              <p className="text-slate-500 text-lg">{t("noResults")}</p>
-              <Button variant="link" onClick={() => setSearchQuery("")} className="text-cyan-500 mt-2">
+            <div className="text-center py-20 bg-muted/30 rounded-3xl border border-border border-dashed">
+              <p className="text-muted-foreground text-lg">{t("noResults")}</p>
+              <Button variant="link" onClick={() => setSearchQuery("")} className="text-primary mt-2">
                  Clear Search
               </Button>
             </div>

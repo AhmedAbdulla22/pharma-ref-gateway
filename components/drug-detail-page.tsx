@@ -361,7 +361,7 @@ export default function DrugDetailPage() {
             </CardHeader>
             <CardContent className="flex items-center justify-center py-6">
                 <div className="text-center space-y-2">
-                  <div className="bg-white p-2 rounded border inline-block">
+                  <div className="bg-card p-2 rounded border inline-block">
                      <QrCode className="h-24 w-24 text-foreground" />
                   </div>
                   <p className="text-xs text-muted-foreground font-mono">ID: {drug.id.split('-')[0]}</p>
