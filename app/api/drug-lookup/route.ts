@@ -12,6 +12,10 @@ const SAMBA_NOVA_API_KEY = process.env.SAMBA_NOVA_API_KEY;
 // Initialize SambaNova client
 const sambaNova = SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: SAMBA_NOVA_API_KEY }) : null;
 
+// Simple in-memory cache for drug data
+const drugCache = new Map<string, any>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // --- 1. TARGETED AI PROMPTS ---
 const PROMPTS = {
   uses: "Summarize the 'Indications' or 'Purpose' into 3 short bullet points about what this drug treats.",
@@ -348,6 +352,13 @@ export async function POST(req: Request) {
     if (!drugName) return NextResponse.json({ found: false });
     const cleanName = encodeURIComponent(drugName.trim());
 
+    // Check cache first
+    const cacheKey = `${cleanName}-${language || 'en'}`;
+    const cached = drugCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json({ found: true, drug: cached.data });
+    }
+
     // 1. FETCH FROM FDA
     const fdaUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name.exact:"${cleanName}"+OR+openfda.generic_name.exact:"${cleanName}")&limit=1`;
     const agent = new https.Agent({ rejectUnauthorized: false, family: 4 });
@@ -390,7 +401,7 @@ export async function POST(req: Request) {
       aiSummarize(contextContra, "contraindications"),
       aiSummarize(contextInteractions, "interactions"),
       aiSummarize(strictPregnancy, "pregnancy"),
-
+      
       // Live Translations
       smartTranslate(strictUses || "See label.", targetLang),
       smartTranslate(strictDosage || "See label.", targetLang),
@@ -400,51 +411,3 @@ export async function POST(req: Request) {
       smartTranslate(strictInteractions || "No specific interactions listed.", targetLang),
       smartTranslate(strictPregnancy || "Consult a doctor if pregnant or nursing.", targetLang)
     ]);
-
-    const drug = {
-      id: item.id,
-      name: openfda.brand_name?.[0] || drugName,
-      genericName: openfda.generic_name?.[0] || 'N/A',
-      category: openfda.pharm_class_epc?.[0] || 'General',
-      
-      aiSummary: {
-        uses: aiUses,
-        sideEffects: aiSideEffects,
-        warnings: aiWarnings,
-        dosage: aiDosage,
-        contraindications: aiContra,
-        interactions: aiInteractions,
-        pregnancy: aiPregnancy 
-      },
-
-      rawDetails: {
-        // These fields now contain the TEXT IN THE USER'S LANGUAGE
-        indications: transIndications,
-        dosage: transDosage,
-        warnings: transWarnings,
-        adverseReactions: transAdverse,
-        contraindications: transContra,
-        interactions: transInteractions,
-        pregnancy: transPregnancy,
-        
-        // Static fields (usually short enough not to need complex translation, or you can add it if needed)
-        pediatric: getSpecificField(item, ['pediatric_use', 'children_only']) || "Consult a pediatrician.",
-        geriatric: getSpecificField(item, ['geriatric_use']) || "Consult a doctor.",
-        
-        ingredients: {
-            active: getSpecificField(item, ['active_ingredient']),
-            inactive: getSpecificField(item, ['inactive_ingredient']) || "Check label for allergens"
-        },
-        supply: getSpecificField(item, ['how_supplied']) || "N/A",
-        route: openfda.route?.[0] || "Oral"
-      },
-      qrCode: `FDA-${item.id}`
-    };
-
-    return NextResponse.json({ found: true, drug });
-
-  } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ found: false });
-  }
-}
