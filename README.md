@@ -19,15 +19,19 @@
 ## 🛠️ Tech Stack
 
 ### Frontend
-* **Framework:** [Next.js 15+](https://nextjs.org/) (App Router)
-* **Styling:** [Tailwind CSS 4.0](https://tailwindcss.com/)
-* **UI Components:** [Shadcn UI](https://ui.shadcn.com/)
+* **Framework:** [Next.js 16](https://nextjs.org/) (App Router)
+* **Styling:** [Tailwind CSS 4.1.9](https://tailwindcss.com/)
+* **UI Components:** [Shadcn UI](https://ui.shadcn.com/) with Radix UI primitives
 * **Typography:** [Vazirmatn](https://fonts.google.com/specimen/Vazirmatn) (Optimized for Kurdish/Arabic readability)
+* **Icons:** [Lucide React](https://lucide.dev/)
+* **Theme Management:** [next-themes](https://github.com/pacocoursey/next-themes)
 
 ### Backend & AI
 * **AI Engine:** [Groq Cloud](https://groq.com/) (Llama-3.3-70b-versatile)
+* **AI SDK:** [Vercel AI SDK](https://sdk.vercel.ai/) v6.0.35
 * **API Layer:** Next.js Route Handlers (Serverless)
-* **Deployment:** [Vercel](https://vercel.com/)
+* **Database:** [Supabase](https://supabase.com/) (PostgreSQL)
+* **Deployment:** [Vercel](https://vercel.com/) with Analytics
 
 ---
 
@@ -48,6 +52,7 @@ The project implements a **Defensive Data Layer** to handle the non-deterministi
 ### Prerequisites
 * Node.js 18.x or later
 * A Groq API Key
+* A Supabase project (for database features)
 
 ### Installation
 
@@ -66,6 +71,9 @@ The project implements a **Defensive Data Layer** to handle the non-deterministi
     Create a `.env.local` file in the root:
     ```env
     GROQ_API_KEY=your_groq_api_key_here
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
     ```
 
 4.  **Run the development server:**

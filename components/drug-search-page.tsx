@@ -15,6 +15,8 @@ export function DrugSearchPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [translationInfo, setTranslationInfo] = useState<any>(null)
+  const [suggestions, setSuggestions] = useState<any[]>([])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -22,6 +24,8 @@ export function DrugSearchPage() {
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
+    setTranslationInfo(null)
+    setSuggestions([])
 
     try {
       // Use the updated API route we fixed earlier
@@ -35,8 +39,14 @@ export function DrugSearchPage() {
 
       if (data.drugs && data.drugs.length > 0) {
         setSearchResults(data.drugs)
+        if (data.translationInfo) {
+          setTranslationInfo(data.translationInfo)
+        }
       } else {
         setSearchResults([])
+        if (data.suggestions) {
+          setSuggestions(data.suggestions)
+        }
       }
     } catch {
       setError("Connection failed.")
@@ -107,6 +117,16 @@ export function DrugSearchPage() {
 
           {!isLoading && hasSearched && searchResults.length > 0 && (
              <div className="space-y-6">
+               {/* Translation Info */}
+               {translationInfo && (
+                 <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 rounded-xl p-4">
+                   <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-200">
+                     <Sparkles className="h-4 w-4" />
+                     <span className="text-sm font-medium">{translationInfo.message}</span>
+                   </div>
+                 </div>
+               )}
+               
                <div className="flex items-center gap-2 text-muted-foreground uppercase text-xs font-bold tracking-widest">
                   <Sparkles className="h-4 w-4 text-cyan-500" /> Found {searchResults.length} results
                </div>
@@ -118,7 +138,31 @@ export function DrugSearchPage() {
              </div>
           )}
 
-          {!isLoading && hasSearched && searchResults.length === 0 && !error && (
+          {/* Suggestions Section */}
+          {!isLoading && hasSearched && searchResults.length === 0 && !error && suggestions.length > 0 && (
+            <div className="space-y-6">
+              <div className="bg-muted/30 rounded-3xl border border-border border-dashed p-8">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Did you mean?</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSearchQuery(suggestion.suggestion)
+                        handleSearch()
+                      }}
+                      className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors text-left"
+                    >
+                      <div className="font-medium text-foreground">{suggestion.suggestion}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{suggestion.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && hasSearched && searchResults.length === 0 && !error && suggestions.length === 0 && (
             <div className="text-center py-20 bg-muted/30 rounded-3xl border border-border border-dashed">
               <p className="text-muted-foreground text-lg">{t("noResults")}</p>
               <Button variant="link" onClick={() => setSearchQuery("")} className="text-primary mt-2">

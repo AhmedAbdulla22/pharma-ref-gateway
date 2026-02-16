@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
+import { findDrugTranslation, getSuggestedDrugs } from '@/lib/drug-translations';
 
 export async function POST(req: Request) {
   let query = "";
@@ -31,11 +32,92 @@ export async function POST(req: Request) {
       httpsAgent: agent,
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    return NextResponse.json({ drugs: mapFdaResults(response.data.results) });
+    
+    const results = response.data.results;
+    if (results && results.length > 0) {
+      return NextResponse.json({ drugs: mapFdaResults(results) });
+    }
+    
+    // If no results found, try to find a translation
+    const translation = findDrugTranslation(query);
+    if (translation && translation !== query.toLowerCase()) {
+      // Search with the translated name
+      const translatedQuery = encodeURIComponent(translation.trim());
+      const translatedUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${translatedQuery}*+OR+openfda.generic_name:${translatedQuery}*)&limit=20`;
+      
+      try {
+        const translatedResponse = await axios.get(translatedUrl, {
+          timeout: 15000,
+          httpsAgent: agent,
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        
+        const translatedResults = translatedResponse.data.results;
+        if (translatedResults && translatedResults.length > 0) {
+          // Add translation info to the results
+          const drugs = mapFdaResults(translatedResults);
+          return NextResponse.json({ 
+            drugs,
+            translationInfo: {
+              original: query,
+              translated: translation,
+              message: `Showing results for "${translation}" (US name for "${query}")`
+            }
+          });
+        }
+      } catch (translationError) {
+        // If translation search fails, continue to suggestions
+        console.log('Translation search failed:', translationError);
+      }
+    }
+    
+    // If still no results, provide suggestions
+    const suggestions = getSuggestedDrugs(query);
+    return NextResponse.json({ 
+      drugs: [],
+      suggestions,
+      message: suggestions.length > 0 ? "No exact match found. Try these suggestions:" : "No medications found. Please check the spelling or try a different search term."
+    });
+    
   } catch (error: any) {
     // Silent fail for 404 (Not Found)
     if (error.response?.status === 404) {
-      return NextResponse.json({ drugs: [] });
+      // Try translation fallback for 404 as well
+      const translation = findDrugTranslation(query);
+      if (translation && translation !== query.toLowerCase()) {
+        const translatedQuery = encodeURIComponent(translation.trim());
+        const translatedUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${translatedQuery}*+OR+openfda.generic_name:${translatedQuery}*)&limit=20`;
+        
+        try {
+          const translatedResponse = await axios.get(translatedUrl, {
+            timeout: 15000,
+            httpsAgent: agent,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          });
+          
+          const translatedResults = translatedResponse.data.results;
+          if (translatedResults && translatedResults.length > 0) {
+            const drugs = mapFdaResults(translatedResults);
+            return NextResponse.json({ 
+              drugs,
+              translationInfo: {
+                original: query,
+                translated: translation,
+                message: `Showing results for "${translation}" (US name for "${query}")`
+              }
+            });
+          }
+        } catch (translationError) {
+          console.log('Translation search failed for 404:', translationError);
+        }
+      }
+      
+      const suggestions = getSuggestedDrugs(query);
+      return NextResponse.json({ 
+        drugs: [],
+        suggestions,
+        message: suggestions.length > 0 ? "No exact match found. Try these suggestions:" : "No medications found. Please check the spelling or try a different search term."
+      });
     }
     console.error(`[API] Connection Error: ${error.message}`);
     return NextResponse.json({ drugs: [] });
