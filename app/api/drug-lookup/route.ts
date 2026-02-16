@@ -83,8 +83,14 @@ async function aiTranslate(text: string, targetLang: string) {
       temperature: 0.3,
     });
     return completion.choices[0].message.content || text;
-  } catch (err) {
-    console.error("Translation failed, returning English:", err);
+  } catch (err: any) {
+    console.error("Translation failed, returning English:", err.message);
+    
+    // Check for rate limit specifically
+    if (err.message?.includes('rate_limit_exceeded')) {
+      return `[AI Translation temporarily unavailable due to rate limits. Original text: ${text}]`;
+    }
+    
     return text; // Fallback to English on error
   }
 }
@@ -119,7 +125,7 @@ async function aiSummarize(text: string, type: keyof typeof PROMPTS) {
           CRITICAL LANGUAGE REQUIREMENTS:
           1. English: Standard medical English
           2. Arabic: Modern Standard Arabic (اللغة العربية الفصحى)
-          3. Kurdish: SORANI KURDISH ONLY (کوردی سۆرانی) - written in Arabic script
+          3. Kurdish: SORANI KURDISH ONLY (كوردی سۆرانی) - written in Arabic script
              - NEVER use Kurmanji (Latin script)
              - NEVER mix dialects
              - Use consistent Sorani terminology
@@ -135,7 +141,18 @@ async function aiSummarize(text: string, type: keyof typeof PROMPTS) {
       response_format: { type: "json_object" }
     });
     return JSON.parse(completion.choices[0].message.content || "{}");
-  } catch (err) {
+  } catch (err: any) {
+    console.error("AI Summary failed:", err.message);
+    
+    // Check for rate limit specifically
+    if (err.message?.includes('rate_limit_exceeded')) {
+      return { 
+        en: ["AI service temporarily unavailable. Please try again later."], 
+        ar: ["خدمة الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً."], 
+        ku: ["خزمەتگوزاری هوشی دەستکردی کاتی بەردەست نییە. تکایە دواتر هەوڵ بدەرەوە."] 
+      };
+    }
+    
     return { 
       en: ["Summary unavailable."], 
       ar: ["ملخص غير متوفر"], 

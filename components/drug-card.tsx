@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { useLanguage } from "@/components/providers/language-provider"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Beaker, Pill, Activity } from "lucide-react"
+import { ArrowRight, Beaker, Pill, Activity, Search, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export interface DrugCardData {
@@ -21,6 +22,25 @@ interface DrugCardProps {
 
 export function DrugCard({ drug }: DrugCardProps) {
   const { language, t, isRTL } = useLanguage()
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false)
+
+  const handleFindSimilar = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isLoadingSimilar) return
+    
+    setIsLoadingSimilar(true)
+    try {
+      // Navigate to search page with similar drugs query
+      const searchQuery = encodeURIComponent(`similar to ${drug.name}`)
+      window.open(`/search?q=${searchQuery}`, '_blank')
+    } catch (error) {
+      console.error('Failed to find similar drugs:', error)
+    } finally {
+      setIsLoadingSimilar(false)
+    }
+  }
 
   const getContent = (field: any) => {
     if (!field) return null
@@ -82,8 +102,8 @@ export function DrugCard({ drug }: DrugCardProps) {
         )}
       </CardContent>
 
-      {/* Footer Button */}
-      <CardFooter className="relative p-5 pt-0 z-10">
+      {/* Footer Buttons */}
+      <CardFooter className="relative p-5 pt-0 z-10 space-y-2">
         <Link href={`/drug/${encodeURIComponent(drug.name)}`} className="w-full">
           <Button 
             variant="ghost"
@@ -94,6 +114,23 @@ export function DrugCard({ drug }: DrugCardProps) {
             <ArrowRight className="h-4 w-4 text-cyan-500 transition-transform duration-300 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
           </Button>
         </Link>
+        
+        <Button
+          onClick={handleFindSimilar}
+          disabled={isLoadingSimilar}
+          variant="outline"
+          size="sm"
+          className={`w-full gap-2 border-border hover:bg-accent/30 text-xs ${isRTL ? "flex-row-reverse" : ""}`}
+        >
+          {isLoadingSimilar ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Search className="h-3 w-3" />
+          )}
+          {language === "en" ? "Find Similar" : 
+           language === "ar" ? "ابحث عن مشابه" : 
+           "دۆزینەوەی هاوشێوە"}
+        </Button>
       </CardFooter>
     </Card>
   )

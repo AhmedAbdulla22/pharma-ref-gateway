@@ -26,7 +26,9 @@ import {
   Package,
   ShieldCheck,
   Stethoscope,
-  Baby
+  Baby,
+  Search,
+  Pill
 } from "lucide-react"
 import Link from "next/link"
 
@@ -36,6 +38,10 @@ export default function DrugDetailPage() {
   const [drug, setDrug] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showSimilar, setShowSimilar] = useState(false)
+  const [similarDrugs, setSimilarDrugs] = useState<any[]>([])
+  const [alternatives, setAlternatives] = useState<any[]>([])
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false)
 
   const drugIdParam = decodeURIComponent(
     (Array.isArray(params.id) ? params.id[0] : params.id) || ''
@@ -82,6 +88,32 @@ export default function DrugDetailPage() {
     }
   }
 
+  const handleFindSimilar = async () => {
+    if (!drug || isLoadingSimilar) return
+    
+    setIsLoadingSimilar(true)
+    try {
+      const response = await fetch('/api/similar-drugs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          drugName: drug.genericName || drug.name,
+          category: drug.category,
+          limit: 8
+        })
+      })
+      
+      const data = await response.json()
+      setSimilarDrugs(data.similar || [])
+      setAlternatives(data.alternatives || [])
+      setShowSimilar(true)
+    } catch (error) {
+      console.error('Failed to find similar drugs:', error)
+    } finally {
+      setIsLoadingSimilar(false)
+    }
+  }
+
   if (isLoading) return (
     <PageWrapper>
       <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
@@ -101,7 +133,17 @@ export default function DrugDetailPage() {
     </PageWrapper>
   )
 
-  const getAiData = (section: any) => section[language] || section['en'] || []
+  const getAiData = (section: any) => {
+  const data = section[language] || section['en'] || []
+  // Check if AI service is unavailable
+  const isUnavailable = data.some((item: string) => 
+    item.includes("temporarily unavailable") || 
+    item.includes("Summary unavailable") ||
+    item.includes("ملخص غير متوفر") ||
+    item.includes("کورتە بەردەست نییە")
+  )
+  return { data, isUnavailable }
+}
 
   return (
     <>
@@ -123,9 +165,26 @@ export default function DrugDetailPage() {
                 <Beaker className="h-4 w-4" /> {drug.genericName}
               </div>
             </div>
-            <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
-              {drug.category}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
+                {drug.category}
+              </Badge>
+              <Button
+                onClick={handleFindSimilar}
+                disabled={isLoadingSimilar}
+                variant="outline"
+                className="gap-2 border-border hover:bg-accent/30"
+              >
+                {isLoadingSimilar ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {language === "en" ? "Find Similar" : 
+                 language === "ar" ? "ابحث عن مشابه" : 
+                 "دۆزینەوەی هاوشێوە"}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -153,6 +212,20 @@ export default function DrugDetailPage() {
             <Sparkles className="h-5 w-5" />
             <h2 className="text-xl font-bold tracking-wide uppercase">AI Smart Summary</h2>
           </div>
+
+          {/* Rate Limit Warning */}
+          {getAiData(drug.aiSummary.uses).isUnavailable && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {language === "en" ? "AI service temporarily unavailable due to rate limits. Raw FDA data is still available below." :
+                   language === "ar" ? "خدمة الذكاء الاصطناعي غير متاحة مؤقتاً بسبب حدود الاستخدام. بيانات FDA الأصلية لا تزال متوفرة أدناه." :
+                   "خزمەتگوزاری هوشی دەستکردی کاتی بەردەست نییە بە هۆی سنوردارکردن. زانیاری بنەڕەتی FDA هێشتا بەردەستە."}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <SummaryCard title="Key Uses" icon={<CheckCircle2 className="text-blue-500" />} data={getAiData(drug.aiSummary.uses)} border="border-t-blue-500" />
@@ -226,6 +299,16 @@ export default function DrugDetailPage() {
           </div>
         </div>
 
+        {/* Similar Drugs Section */}
+        {showSimilar && (
+          <SimilarDrugsSection 
+            similarDrugs={similarDrugs} 
+            alternatives={alternatives} 
+            language={language} 
+            isRTL={isRTL} 
+          />
+        )}
+
         {/* --- SECTION: MEDICAL DISCLAIMER --- */}
         <Card className={`bg-red-950/10 border-red-900/20 mt-12 ${isRTL ? "text-right" : "text-left"}`}>
           <CardContent className={`p-6 flex gap-4 items-start ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
@@ -258,7 +341,7 @@ function SummaryCard({ title, icon, data, border }: any) {
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">
-          {data.map((point: string, i: number) => (
+          {data.data.map((point: string, i: number) => (
             <li key={i} className="text-[13px] text-foreground leading-snug">• {point}</li>
           ))}
         </ul>
@@ -285,6 +368,66 @@ function SafetyCard({ title, content }: any) {
     <div className="p-3 rounded-lg bg-card border-border">
       <h5 className="text-[10px] font-bold text-muted-foreground mb-1">{title} Use</h5>
       <p className="text-[11px] text-muted-foreground line-clamp-3 hover:line-clamp-none cursor-pointer">{content}</p>
+    </div>
+  )
+}
+
+// Similar Drugs Component
+function SimilarDrugsSection({ similarDrugs, alternatives, language, isRTL }: any) {
+  if (similarDrugs.length === 0 && alternatives.length === 0) return null;
+
+  return (
+    <div className="space-y-6 pt-4">
+      <div className={`flex items-center gap-2 text-primary border-b border-primary/20 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <Search className="h-5 w-5" />
+        <h2 className="text-xl font-bold tracking-wide uppercase">
+          {language === "en" ? "Similar & Alternative Medications" : 
+           language === "ar" ? "أدوية مماثلة وبديلة" : 
+           "دەرمانە هاوشێوە و بەدیلەکان"}
+        </h2>
+      </div>
+
+      {alternatives.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">
+            {language === "en" ? "Alternatives" : 
+             language === "ar" ? "البدائل" : 
+             "بەدیلەکان"}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {alternatives.map((drug: any, index: number) => (
+              <Link key={`alt-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`}>
+                <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                  <div className="font-medium text-foreground">{drug.name}</div>
+                  <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {similarDrugs.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">
+            {language === "en" ? "Similar Medications" : 
+             language === "ar" ? "أدوية مماثلة" : 
+             "دەرمانە هاوشێوەکان"}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {similarDrugs.map((drug: any, index: number) => (
+              <Link key={`sim-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`}>
+                <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                  <div className="font-medium text-foreground">{drug.name}</div>
+                  <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
