@@ -73,6 +73,27 @@ function cleanString(str: string, maxLength: number = 50) {
   return str.substring(0, maxLength) + "...";
 }
 
+// 1. Add this translation map at the bottom of the file
+const CATEGORY_TRANSLATIONS: any = {
+  "General Medication": { ar: "دواء عام", ku: "دەرمانی گشتی" },
+  "Otc Medication": { ar: "دواء بدون وصفة", ku: "دەرمانی بێ ڕەچەتە" },
+  "Prescription": { ar: "دواء بوصفة طبية", ku: "دەرمانی بە ڕەچەتە" },
+  "Human Otc Drug": { ar: "دواء بشري (بدون وصفة)", ku: "دەرمانی مرۆیی (بێ ڕەچەتە)" },
+  "Human Prescription Drug": { ar: "دواء بشري (وصفة)", ku: "دەرمانی مرۆیی (بە ڕەچەتە)" },
+  // Add common mechanisms if you want
+  "Histamine H1 Receptor Antagonist": { ar: "مضاد الهيستامين", ku: "دژە هیستامین" },
+  "Non-Steroidal Anti-Inflammatory Drug": { ar: "مضاد التهاب غير ستيرويدي", ku: "دژە هەوکردنی ناستیرۆیدی" }
+};
+
+function getLocalizedCategory(englishCat: string) {
+  const trans = CATEGORY_TRANSLATIONS[englishCat];
+  return {
+    en: englishCat,
+    ar: trans?.ar || englishCat, // Fallback to English if translation missing
+    ku: trans?.ku || englishCat
+  };
+}
+
 function mapFdaResults(results: any[]) {
   return results.map((item: any, index: number) => {
     const openfda = item.openfda || {};
@@ -93,16 +114,22 @@ function mapFdaResults(results: any[]) {
     // e.g. If "Tablet" is missing, use "Oral"
     const dosageForm = openfda.dosage_form?.[0] || openfda.route?.[0] || 'N/A';
 
+    // Get the English Category first
+    const englishCategory = getBestCategory(openfda);
+    
+    // Get the Localized Object
+    const categoryObj = getLocalizedCategory(englishCategory);
+
     return {
       id: id,
       name: tradeName,
       scientificName: shortGeneric, // Using cleaned name
       fullScientificName: fullGeneric, // Keep full name if needed for tooltip
-      category: category,
+      category: englishCategory,
       description: { 
-        en: `Class: ${category} | Form: ${dosageForm}`,
-        ar: `الصنف: ${category} | الشكل: ${dosageForm}`,
-        ku: `پۆل: ${category} | شێوە: ${dosageForm}`
+        en: `Class: ${categoryObj.en} | Form: ${dosageForm}`,
+        ar: `الصنف: ${categoryObj.ar} | الشكل: ${dosageForm}`,
+        ku: `پۆل: ${categoryObj.ku} | شێوە: ${dosageForm}`
       },
       uses: { en: ["View Details >"], ar: ["عرض التفاصيل >"], ku: ["بینینی وردەکاری >"] },
       sideEffects: { en: [], ar: [], ku: [] },

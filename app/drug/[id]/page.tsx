@@ -49,7 +49,7 @@ export default function DrugDetailPage() {
         const response = await fetch('/api/drug-lookup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ drugName: drugIdParam })
+          body: JSON.stringify({ drugName: drugIdParam, language })
         })
         const data = await response.json()
         if (data.found) {
@@ -64,7 +64,7 @@ export default function DrugDetailPage() {
       }
     }
     fetchDrug()
-  }, [drugIdParam])
+  }, [drugIdParam, language])
 
   const scrollTo = (id: string) => {
     const element = document.getElementById(id);

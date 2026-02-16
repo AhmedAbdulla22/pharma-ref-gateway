@@ -8,27 +8,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Pill, AlertTriangle, Activity, AlertCircle, ArrowLeft, QrCode, Loader2, Beaker } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 
-// Exact shape of your Supabase Table
-interface DBDrug {
+// API Response Interface
+interface APIDrug {
   id: string
-  trade_name: string
-  generic_name: string
-  drug_class: string
-  indications: string
-  side_effects: string
-  contraindications: string
-  warnings: string
-  dosage_form: string
-  pregnancy_category: string
+  name: string
+  genericName: string
+  category: string
+  aiSummary: {
+    uses: { en: string[], ar: string[], ku: string[] }
+    sideEffects: { en: string[], ar: string[], ku: string[] }
+    warnings: { en: string[], ar: string[], ku: string[] }
+    dosage: { en: string[], ar: string[], ku: string[] }
+    contraindications: { en: string[], ar: string[], ku: string[] }
+    interactions: { en: string[], ar: string[], ku: string[] }
+    pregnancy: { en: string[], ar: string[], ku: string[] }
+  }
+  rawDetails: {
+    indications: string
+    dosage: string
+    warnings: string
+    adverseReactions: string
+    contraindications: string
+    interactions: string
+    pregnancy: string
+    pediatric: string
+    geriatric: string
+    ingredients: {
+      active: string
+      inactive: string
+    }
+    supply: string
+    route: string
+  }
+  qrCode: string
 }
 
 export default function DrugDetailPage() {
   const params = useParams()
   const { language, t, isRTL } = useLanguage()
-  const [drug, setDrug] = useState<DBDrug | null>(null)
+  const [drug, setDrug] = useState<APIDrug | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,17 +64,16 @@ export default function DrugDetailPage() {
       setError(null)
 
       try {
-        // We search by trade_name OR generic_name to be safe
-        const { data, error } = await supabase
-          .from('drugs')
-          .select('*')
-          .or(`trade_name.ilike.%${drugIdParam}%,generic_name.ilike.%${drugIdParam}%`)
-          .limit(1)
-          .single()
+        const response = await fetch("/api/drug-lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ drugName: drugIdParam, language })
+        })
 
-        if (error) throw error
-        if (data) {
-          setDrug(data)
+        const data = await response.json()
+
+        if (data.found && data.drug) {
+          setDrug(data.drug)
         } else {
           setError("Drug not found")
         }
@@ -67,12 +86,11 @@ export default function DrugDetailPage() {
     }
 
     fetchDrug()
-  }, [drugIdParam])
+  }, [drugIdParam, language])
 
-  // Helper to split DB strings (comma separated) into arrays
-  const parseDBList = (text: string | null) => {
-    if (!text) return []
-    return text.split(',').map(s => s.trim()).filter(Boolean)
+  // Helper to get localized text from API response
+  const getLocalizedText = (textObj: { en: string[], ar: string[], ku: string[] }) => {
+    return textObj[language] || textObj.en || []
   }
 
   if (isLoading) {
@@ -125,23 +143,18 @@ export default function DrugDetailPage() {
             <div className={`flex flex-col md:flex-row gap-4 justify-between items-start ${isRTL ? "md:flex-row-reverse text-right" : ""}`}>
               <div className="space-y-2">
                 <CardTitle className="text-3xl md:text-4xl font-bold text-primary">
-                  {drug.trade_name || drug.generic_name}
+                  {drug.name || drug.genericName}
                 </CardTitle>
                 <div className={`flex items-center gap-2 text-muted-foreground font-mono text-lg ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
                   <Beaker className="h-4 w-4" />
-                  <span>{drug.generic_name}</span>
+                  <span>{drug.genericName}</span>
                 </div>
               </div>
               
               <div className={`flex flex-col gap-2 ${isRTL ? "items-end" : "items-start md:items-end"}`}>
                 <Badge variant="outline" className="px-3 py-1 text-sm bg-background">
-                  {drug.drug_class}
+                  {drug.category}
                 </Badge>
-                {drug.pregnancy_category && (
-                  <Badge variant="secondary" className="px-3 py-1 text-xs">
-                    Pregnancy Category: {drug.pregnancy_category}
-                  </Badge>
-                )}
               </div>
             </div>
           </CardHeader>
@@ -160,7 +173,7 @@ export default function DrugDetailPage() {
             </CardHeader>
             <CardContent>
               <div className={`flex flex-wrap gap-2 ${isRTL ? "justify-end" : ""}`}>
-                {parseDBList(drug.indications).map((use, i) => (
+                {getLocalizedText(drug.aiSummary.uses).map((use, i) => (
                   <Badge key={i} variant="secondary" className="px-3 py-1 text-sm font-normal">
                     {use}
                   </Badge>
@@ -179,7 +192,7 @@ export default function DrugDetailPage() {
             </CardHeader>
             <CardContent className="pt-4">
               <ul className={`space-y-2 ${isRTL ? "text-right" : ""}`}>
-                {parseDBList(drug.side_effects).map((effect, i) => (
+                {getLocalizedText(drug.aiSummary.sideEffects).map((effect, i) => (
                   <li key={i} className={`flex items-start gap-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
                     <span className="text-sm">{effect}</span>
@@ -199,20 +212,24 @@ export default function DrugDetailPage() {
             </CardHeader>
             <CardContent className="pt-4">
                <div className="space-y-4">
-                 {/* Explicit Warnings */}
-                 {drug.warnings && (
-                    <div className={isRTL ? "text-right" : ""}>
-                      <p className="text-xs font-bold uppercase text-red-600/70 mb-1">Warnings</p>
-                      <p className="text-sm text-foreground/90 leading-relaxed">{drug.warnings}</p>
-                    </div>
-                 )}
-                 {/* Contraindications */}
-                 {drug.contraindications && (
-                    <div className={isRTL ? "text-right" : ""}>
-                      <p className="text-xs font-bold uppercase text-red-600/70 mb-1">Contraindications</p>
-                      <p className="text-sm text-foreground/90 leading-relaxed">{drug.contraindications}</p>
-                    </div>
-                 )}
+                 {/* AI Summarized Warnings */}
+                 <div className={isRTL ? "text-right" : ""}>
+                   <p className="text-xs font-bold uppercase text-red-600/70 mb-2">{t("warnings")}</p>
+                   <ul className="space-y-1">
+                     {getLocalizedText(drug.aiSummary.warnings).map((warning, i) => (
+                       <li key={i} className="text-sm text-foreground/90 leading-relaxed">• {warning}</li>
+                     ))}
+                   </ul>
+                 </div>
+                 {/* AI Summarized Contraindications */}
+                 <div className={isRTL ? "text-right" : ""}>
+                   <p className="text-xs font-bold uppercase text-red-600/70 mb-2">Contraindications</p>
+                   <ul className="space-y-1">
+                     {getLocalizedText(drug.aiSummary.contraindications).map((contra, i) => (
+                       <li key={i} className="text-sm text-foreground/90 leading-relaxed">• {contra}</li>
+                     ))}
+                   </ul>
+                 </div>
                </div>
             </CardContent>
           </Card>
@@ -227,9 +244,110 @@ export default function DrugDetailPage() {
             </CardHeader>
             <CardContent>
                <div className={`p-4 bg-emerald-50/50 rounded-lg border border-emerald-100 ${isRTL ? "text-right" : ""}`}>
-                 <span className="block text-xs font-semibold text-emerald-600 uppercase mb-1">Form</span>
-                 <p className="font-medium text-lg">{drug.dosage_form || "N/A"}</p>
+                 <span className="block text-xs font-semibold text-emerald-600 uppercase mb-1">{t("dosage")}</span>
+                 <ul className="space-y-1">
+                   {getLocalizedText(drug.aiSummary.dosage).map((dosage, i) => (
+                     <li key={i} className="font-medium text-sm">• {dosage}</li>
+                   ))}
+                 </ul>
                </div>
+            </CardContent>
+          </Card>
+
+          {/* Raw Translated Data */}
+          <Card className="md:col-span-2 border-blue-100">
+            <CardHeader className="bg-blue-50/30 pb-3">
+              <CardTitle className={`flex items-center gap-2 text-lg text-blue-700 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <AlertCircle className="h-5 w-5" />
+                {language === "en" ? "Complete Medical Information" : 
+                 language === "ar" ? "المعلومات الطبية الكاملة" : 
+                 "زانیاری تەواوی پزیشکی"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-6">
+              {/* Indications */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Indications & Usage" : 
+                   language === "ar" ? "الاستطبابات والاستخدام" : 
+                   "نیشانەکان و بەکارهێنان"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.indications}
+                </p>
+              </div>
+
+              {/* Dosage and Administration */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Dosage & Administration" : 
+                   language === "ar" ? "الجرعة والإعطاء" : 
+                   "دۆز و بەڕێوەبردن"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.dosage}
+                </p>
+              </div>
+
+              {/* Warnings and Precautions */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Warnings & Precautions" : 
+                   language === "ar" ? "التحذيرات والاحتياطات" : 
+                   "ئاگاداریەکان و ڕێوشوێنەکان"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.warnings}
+                </p>
+              </div>
+
+              {/* Adverse Reactions */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Adverse Reactions" : 
+                   language === "ar" ? "التفاعلات العكسية" : 
+                   "کارلێکەکان نەرێنی"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.adverseReactions}
+                </p>
+              </div>
+
+              {/* Contraindications */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Contraindications" : 
+                   language === "ar" ? "مضادات الاستطباب" : 
+                   "دژە نیشانەکان"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.contraindications}
+                </p>
+              </div>
+
+              {/* Drug Interactions */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Drug Interactions" : 
+                   language === "ar" ? "التفاعلات الدوائية" : 
+                   "کارلێکەکانی دەرمان"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.interactions}
+                </p>
+              </div>
+
+              {/* Pregnancy and Breastfeeding */}
+              <div className={isRTL ? "text-right" : ""}>
+                <p className="text-xs font-bold uppercase text-blue-600/70 mb-2">
+                  {language === "en" ? "Pregnancy & Breastfeeding" : 
+                   language === "ar" ? "الحمل والرضاعة" : 
+                   "منداڵبوون و شیردانی"}
+                </p>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                  {drug.rawDetails.pregnancy}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
