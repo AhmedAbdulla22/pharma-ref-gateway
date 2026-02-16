@@ -24,7 +24,7 @@ async function translateText(text: string, targetLang: string): Promise<string> 
           },
           { role: "user", content: text.substring(0, 1500) }
         ],
-        model: "Meta-Llama-3.3-70B-Instruct",
+        model: "Meta-Llama-3.1-8B-Instruct",
         temperature: 0.3,
       });
       return (completion as any).choices?.[0]?.message?.content || text;

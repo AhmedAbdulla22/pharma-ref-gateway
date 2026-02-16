@@ -140,7 +140,10 @@ export default function DrugDetailPage() {
     item.includes("temporarily unavailable") || 
     item.includes("Summary unavailable") ||
     item.includes("ملخص غير متوفر") ||
-    item.includes("کورتە بەردەست نییە")
+    item.includes("کورتە بەردەست نییە") ||
+    item.includes("All AI services unavailable") ||
+    item.includes("جميع خدمات الذكاء الاصطناعي غير متاحة") ||
+    item.includes("هەموو خزمەتگوزارییەکانی هوشی دەستکرد بەردەست نییە")
   )
   return { data, isUnavailable }
 }
