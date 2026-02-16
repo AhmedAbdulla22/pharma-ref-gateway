@@ -2,8 +2,65 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
 import Groq from "groq-sdk";
+import SambaNova from 'sambanova';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const sambaNova = process.env.SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: process.env.SAMBA_NOVA_API_KEY }) : null;
+
+// Smart Translation System with Fallbacks
+// Priority: 1. SambaNova AI (best for medical translation), 2. Groq AI
+async function translateText(text: string, targetLang: string): Promise<string> {
+  if (!text || targetLang === 'en') return text;
+  
+  // Try SambaNova AI first
+  if (sambaNova) {
+    try {
+      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+      
+      const completion = await sambaNova.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
+          },
+          { role: "user", content: text.substring(0, 1500) }
+        ],
+        model: "Meta-Llama-3.3-70B-Instruct",
+        temperature: 0.3,
+      });
+      return (completion as any).choices?.[0]?.message?.content || text;
+    } catch (err: any) {
+      console.log("SambaNova translation failed, trying Groq...", err.message);
+    }
+  }
+
+  // Fallback to Groq AI
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+      
+      const completion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
+          },
+          { role: "user", content: text.substring(0, 1500) }
+        ],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.3,
+      });
+      return completion.choices[0].message.content || text;
+    } catch (err: any) {
+      console.error("All translation providers failed:", err.message);
+    }
+  }
+
+  // Fallback to original text
+  return text;
+}
 
 // AI Interaction Analysis Prompt
 const INTERACTION_PROMPT = `

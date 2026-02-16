@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
 import Groq from "groq-sdk";
+import SambaNova from 'sambanova';
 
+// Initialize all AI providers
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GOOGLE_API_KEY = process.env.GOOGLE_AI_API_KEY;
+const SAMBA_NOVA_API_KEY = process.env.SAMBA_NOVA_API_KEY;
+
+// Initialize SambaNova client
+const sambaNova = SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: SAMBA_NOVA_API_KEY }) : null;
 
 // --- 1. TARGETED AI PROMPTS ---
 const PROMPTS = {
@@ -42,56 +49,124 @@ function getSpecificField(item: any, keys: string[]): string {
   return "";
 }
 
-// NEW: Live Translator for Raw Data
-async function aiTranslate(text: string, targetLang: string) {
-  // 1. If English, empty, or short, return original text immediately (Saves tokens/time)
+// Smart Translation System with Fallbacks
+// Priority: 1. SambaNova AI (best for medical translation), 2. Groq AI
+async function smartTranslate(text: string, targetLang: string): Promise<string> {
   if (!text || text.length < 5 || targetLang === 'en' || !targetLang) return text;
 
-  const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
-                   'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
-
-  try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional medical translator. 
-          Task: Translate the following FDA drug label text into ${langName}.
-          
-          CRITICAL REQUIREMENTS:
-          ${targetLang === 'ku' ? `
-          - KURDISH: Use SORANI KURDISH ONLY (کوردی سۆرانی)
-          - Write in Arabic script, NEVER Latin script
-          - NEVER use Kurmanji terms or spellings
-          - Use consistent Sorani medical terminology
-          - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشک" (doctor), "نیشانە" (symptom), "دۆز" (dose)
-          ` : `
-          - ARABIC: Use Modern Standard Arabic only
-          - Use proper medical terminology
-          `}
-          
-          Guidelines:
-          1. Maintain strict medical accuracy
-          2. Use professional medical terminology
-          3. Keep original formatting (paragraphs, line breaks)
-          4. Do NOT summarize; translate the full meaning
-          5. Be consistent with terminology throughout`
-        },
-        { role: "user", content: text.substring(0, 1500) } // Limit chars to prevent timeouts
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.3,
-    });
-    return completion.choices[0].message.content || text;
-  } catch (err: any) {
-    console.error("Translation failed, returning English:", err.message);
-    
-    // Check for rate limit specifically
-    if (err.message?.includes('rate_limit_exceeded')) {
-      return `[AI Translation temporarily unavailable due to rate limits. Original text: ${text}]`;
+  // Try SambaNova AI first
+  if (sambaNova) {
+    try {
+      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+      
+      const completion = await sambaNova.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional medical translator. Translate the following FDA drug label text into ${langName}. Maintain strict medical accuracy and professional terminology. Translate the full meaning without summarizing.`
+          },
+          { role: "user", content: text.substring(0, 1500) }
+        ],
+        model: "Meta-Llama-3.3-70B-Instruct",
+        temperature: 0.3,
+      });
+      return (completion as any).choices?.[0]?.message?.content || text;
+    } catch (err: any) {
+      console.log("SambaNova translation failed, trying Groq...", err.message);
     }
-    
-    return text; // Fallback to English on error
+  }
+
+  // Fallback to Groq AI
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+      
+      const completion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional medical translator. Translate the following FDA drug label text into ${langName}. Maintain strict medical accuracy and professional terminology. Translate the full meaning without summarizing.`
+          },
+          { role: "user", content: text.substring(0, 1500) }
+        ],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.3,
+      });
+      return completion.choices[0].message.content || text;
+    } catch (err: any) {
+      console.error("All translation providers failed:", err.message);
+    }
+  }
+
+  // Final fallback
+  return `[Translation unavailable. Original text: ${text}]`;
+}
+
+// Google AI Summarizer
+async function googleAiSummarize(text: string, type: keyof typeof PROMPTS) {
+  if (!GOOGLE_API_KEY) {
+    throw new Error("Google AI API key not configured");
+  }
+
+  const defaultMessages: Record<string, string> = {
+    uses: "No specific uses listed.",
+    sideEffects: "No common side effects listed.",
+    warnings: "No specific warnings listed.",
+    dosage: "No specific dosage instructions listed.",
+    contraindications: "No specific restrictions listed.",
+    interactions: "No specific drug interactions listed.",
+    pregnancy: "Safety data not available. Consult a doctor."
+  };
+
+  if (!text || text.length < 5) {
+    const emptyMsg = defaultMessages[type] || "Data not available.";
+    return { 
+      en: [emptyMsg], 
+      ar: ["غير متوفر"], 
+      ku: ["بەردەست نییە"] 
+    };
+  }
+
+  const prompt = `You are a medical data extractor and translator. Task: ${PROMPTS[type]}
+
+CRITICAL LANGUAGE REQUIREMENTS:
+1. English: Standard medical English
+2. Arabic: Modern Standard Arabic (اللغة العربية الفصحى)
+3. Kurdish: SORANI KURDISH ONLY (كوردی سۆرانی) - written in Arabic script
+   - NEVER use Kurmanji (Latin script)
+   - NEVER mix dialects
+   - Use consistent Sorani terminology
+   - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشك" (doctor), "نیشانە" (symptom)
+
+Input Text: "${text.substring(0, 2500)}"
+Output: Return a JSON object with keys "en", "ar", "ku". 
+Each value must be an array of exactly 3 short, medically accurate strings.
+
+Extract and translate to all three languages now.`;
+
+    try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
+      {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      }
+    );
+
+    const result = response.data.candidates[0].content.parts[0].text;
+    return JSON.parse(result);
+  } catch (err: any) {
+    console.error("Google AI Summary failed:", err.message);
+    throw err; // Re-throw to try Groq fallback
   }
 }
 
@@ -115,6 +190,119 @@ async function aiSummarize(text: string, type: keyof typeof PROMPTS) {
     };
   }
 
+  // Try Google AI first (if available)
+  if (GOOGLE_API_KEY) {
+    try {
+      console.log(`Trying Google AI for ${type}...`);
+      return await googleAiSummarize(text, type);
+    } catch (googleError: any) {
+      console.log(`Google AI failed for ${type}, trying SambaNova...`, googleError.message);
+      
+      // Try SambaNova AI second
+      if (sambaNova) {
+        try {
+          const completion = await sambaNova.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: `You are a medical data extractor and translator. Task: ${PROMPTS[type]}
+                
+                CRITICAL LANGUAGE REQUIREMENTS:
+                1. English: Standard medical English
+                2. Arabic: Modern Standard Arabic (اللغة العربية الفصحى)
+                3. Kurdish: SORANI KURDISH ONLY (كوردی سۆرانی) - written in Arabic script
+                   - NEVER use Kurmanji (Latin script)
+                   - NEVER mix dialects
+                   - Use consistent Sorani terminology
+                   - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشك" (doctor), "نیشانە" (symptom)
+                
+                Input Text: "${text.substring(0, 2500)}"
+                Output: Return a JSON object with keys "en", "ar", "ku". 
+                Each value must be an array of exactly 3 short, medically accurate strings.`
+              },
+              { role: "user", content: "Extract and translate to all three languages now." }
+            ],
+            model: "Meta-Llama-3.3-70B-Instruct",
+            response_format: { type: "json_object" }
+          });
+          return JSON.parse((completion as any).choices?.[0]?.message?.content || "{}");
+        } catch (sambaError: any) {
+          console.log(`SambaNova failed for ${type}, trying Groq...`, sambaError.message);
+        }
+      }
+      
+      // Fall back to Groq
+      try {
+        const completion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: `You are a medical data extractor and translator. Task: ${PROMPTS[type]}
+              
+              CRITICAL LANGUAGE REQUIREMENTS:
+              1. English: Standard medical English
+              2. Arabic: Modern Standard Arabic (اللغة العربية الفصحى)
+              3. Kurdish: SORANI KURDISH ONLY (كوردی سۆرانی) - written in Arabic script
+                 - NEVER use Kurmanji (Latin script)
+                 - NEVER mix dialects
+                 - Use consistent Sorani terminology
+                 - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشك" (doctor), "نیشانە" (symptom)
+              
+              Input Text: "${text.substring(0, 2500)}"
+              Output: Return a JSON object with keys "en", "ar", "ku". 
+              Each value must be an array of exactly 3 short, medically accurate strings.`
+            },
+            { role: "user", content: "Extract and translate to all three languages now." }
+          ],
+          model: "llama-3.3-70b-versatile",
+          response_format: { type: "json_object" }
+        });
+        return JSON.parse(completion.choices[0].message.content || "{}");
+      } catch (err: any) {
+        console.error(`All providers failed for ${type}`, err.message);
+        return { 
+          en: ["All AI services unavailable."], 
+          ar: ["جميع خدمات الذكاء الاصطناعي غير متاحة."], 
+          ku: ["هەموو خزمەتگوزاریەکانی هوشی دەستکرد ناچالاكن."] 
+        };
+      }
+    }
+  }
+
+  // Try SambaNova AI first if Google AI not available
+  if (sambaNova) {
+    try {
+      const completion = await sambaNova.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a medical data extractor and translator. Task: ${PROMPTS[type]}
+            
+            CRITICAL LANGUAGE REQUIREMENTS:
+            1. English: Standard medical English
+            2. Arabic: Modern Standard Arabic (اللغة العربية الفصحى)
+            3. Kurdish: SORANI KURDISH ONLY (كوردی سۆرانی) - written in Arabic script
+               - NEVER use Kurmanji (Latin script)
+               - NEVER mix dialects
+               - Use consistent Sorani terminology
+               - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشك" (doctor), "نیشانە" (symptom)
+            
+            Input Text: "${text.substring(0, 2500)}"
+            Output: Return a JSON object with keys "en", "ar", "ku". 
+            Each value must be an array of exactly 3 short, medically accurate strings.`
+          },
+          { role: "user", content: "Extract and translate to all three languages now." }
+        ],
+        model: "Meta-Llama-3.3-70B-Instruct",
+        response_format: { type: "json_object" }
+      });
+      return JSON.parse((completion as any).choices?.[0]?.message?.content || "{}");
+    } catch (sambaError: any) {
+      console.log(`SambaNova failed for ${type}, trying Groq...`, sambaError.message);
+    }
+  }
+
+  // Only Groq available - use original logic
   try {
     const completion = await groq.chat.completions.create({
       messages: [
@@ -129,7 +317,7 @@ async function aiSummarize(text: string, type: keyof typeof PROMPTS) {
              - NEVER use Kurmanji (Latin script)
              - NEVER mix dialects
              - Use consistent Sorani terminology
-             - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشک" (doctor), "نیشانە" (symptom)
+             - Examples: "ئازار" (pain), "دەرمان" (medicine), "پزیشك" (doctor), "نیشانە" (symptom)
           
           Input Text: "${text.substring(0, 2500)}"
           Output: Return a JSON object with keys "en", "ar", "ku". 
@@ -142,21 +330,11 @@ async function aiSummarize(text: string, type: keyof typeof PROMPTS) {
     });
     return JSON.parse(completion.choices[0].message.content || "{}");
   } catch (err: any) {
-    console.error("AI Summary failed:", err.message);
-    
-    // Check for rate limit specifically
-    if (err.message?.includes('rate_limit_exceeded')) {
-      return { 
-        en: ["AI service temporarily unavailable. Please try again later."], 
-        ar: ["خدمة الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً."], 
-        ku: ["خزمەتگوزاری هوشی دەستکردی کاتی بەردەست نییە. تکایە دواتر هەوڵ بدەرەوە."] 
-      };
-    }
-    
+    console.error(`All providers failed for ${type}`, err.message);
     return { 
-      en: ["Summary unavailable."], 
-      ar: ["ملخص غير متوفر"], 
-      ku: ["کورتە بەردەست نییە"] 
+      en: ["All AI services unavailable."], 
+      ar: ["جميع خدمات الذكاء الاصطناعي غير متاحة."], 
+      ku: ["هەموو خزمەتگوزاریەکانی هوشی دەستکرد ناچالاكن."] 
     };
   }
 }
@@ -214,13 +392,13 @@ export async function POST(req: Request) {
       aiSummarize(strictPregnancy, "pregnancy"),
 
       // Live Translations
-      aiTranslate(strictUses || "See label.", targetLang),
-      aiTranslate(strictDosage || "See label.", targetLang),
-      aiTranslate(strictWarnings || "No specific warnings listed.", targetLang),
-      aiTranslate(strictAdverse || (strictWarnings ? "Refer to 'Warnings' above." : "None listed."), targetLang),
-      aiTranslate(strictContra || (strictWarnings ? "Refer to 'Warnings' section." : "None listed."), targetLang),
-      aiTranslate(strictInteractions || "No specific interactions listed.", targetLang),
-      aiTranslate(strictPregnancy || "Consult a doctor if pregnant or nursing.", targetLang)
+      smartTranslate(strictUses || "See label.", targetLang),
+      smartTranslate(strictDosage || "See label.", targetLang),
+      smartTranslate(strictWarnings || "No specific warnings listed.", targetLang),
+      smartTranslate(strictAdverse || (strictWarnings ? "Refer to 'Warnings' above." : "None listed."), targetLang),
+      smartTranslate(strictContra || (strictWarnings ? "Refer to 'Warnings' section." : "None listed."), targetLang),
+      smartTranslate(strictInteractions || "No specific interactions listed.", targetLang),
+      smartTranslate(strictPregnancy || "Consult a doctor if pregnant or nursing.", targetLang)
     ]);
 
     const drug = {
