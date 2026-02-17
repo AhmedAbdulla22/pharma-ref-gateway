@@ -90,6 +90,7 @@ This project was developed as a final year graduation project for a **B.Sc. in C
 **Vibe-Coders:**
 - Ahmed Abdullah Ahmed
 - Bawan Sameer Ibrahim
+
 **Year:** 2026
 
 ---
