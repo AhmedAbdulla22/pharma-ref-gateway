@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { PageWrapper } from "@/components/page-wrapper"
 import { DrugCard } from "@/components/drug-card"
 import { useLanguage } from "@/components/providers/language-provider"
@@ -10,6 +11,7 @@ import { Search, Loader2, Sparkles, Database } from "lucide-react"
 
 export function DrugSearchPage() {
   const { language, t, isRTL } = useLanguage()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -17,6 +19,26 @@ export function DrugSearchPage() {
   const [error, setError] = useState<string | null>(null)
   const [translationInfo, setTranslationInfo] = useState<any>(null)
   const [suggestions, setSuggestions] = useState<any[]>([])
+  const [similarDrugs, setSimilarDrugs] = useState<any[]>([])
+  const [alternatives, setAlternatives] = useState<any[]>([])
+
+  // Handle URL parameters for similar drugs
+  useEffect(() => {
+    const query = searchParams.get('q')
+    const results = searchParams.get('results')
+    
+    if (query && results) {
+      try {
+        const parsedResults = JSON.parse(decodeURIComponent(results))
+        setSearchQuery(query)
+        setSimilarDrugs(parsedResults.similar || [])
+        setAlternatives(parsedResults.alternatives || [])
+        setHasSearched(true)
+      } catch (error) {
+        console.error('Failed to parse similar drugs results:', error)
+      }
+    }
+  }, [searchParams])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -136,6 +158,62 @@ export function DrugSearchPage() {
                   ))}
                </div>
              </div>
+          )}
+
+          {/* Similar Drugs Section */}
+          {!isLoading && hasSearched && (similarDrugs.length > 0 || alternatives.length > 0) && (
+            <div className="space-y-8">
+              <div className="flex items-center gap-2 text-primary border-b border-primary/20 pb-2">
+                <Search className="h-5 w-5" />
+                <h2 className="text-xl font-bold tracking-wide uppercase">
+                  {language === "en" ? "Similar & Alternative Medications" : 
+                   language === "ar" ? "أدوية مماثلة وبديلة" : 
+                   "دەرمانە هاوشێوە و بەدیلەکان"}
+                </h2>
+              </div>
+
+              {alternatives.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {language === "en" ? "Alternatives" : 
+                     language === "ar" ? "البدائل" : 
+                     "بەدیلەکان"}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {alternatives.map((drug: any, index: number) => (
+                      <a key={`alt-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`} className="block">
+                        <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                          <div className="font-medium text-foreground">{drug.name}</div>
+                          <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {similarDrugs.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {language === "en" ? "Similar Medications" : 
+                     language === "ar" ? "أدوية مماثلة" : 
+                     "دەرمانە هاوشێوەکان"}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {similarDrugs.map((drug: any, index: number) => (
+                      <a key={`sim-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`} className="block">
+                        <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
+                          <div className="font-medium text-foreground">{drug.name}</div>
+                          <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Suggestions Section */}

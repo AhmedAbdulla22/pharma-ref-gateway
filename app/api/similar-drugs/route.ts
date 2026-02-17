@@ -83,28 +83,39 @@ export async function POST(req: Request) {
     let similar: any[] = [];
     
     if (category) {
-      // Search for drugs in the same category
-      const categoryQuery = encodeURIComponent(category.trim());
-      const categoryUrl = `https://api.fda.gov/drug/label.json?search=openfda.pharm_class_epc:"${categoryQuery}"&limit=${limit}`;
+      // Search for drugs in the same category - try multiple query formats
+      const categoryQuery = category.trim().replace(/\s+/g, '+');
+      const categoryUrls = [
+        `https://api.fda.gov/drug/label.json?search=openfda.pharm_class_epc:${categoryQuery}&limit=${limit}`,
+        `https://api.fda.gov/drug/label.json?search=openfda.pharm_class_epc.exact:"${encodeURIComponent(category)}"&limit=${limit}`,
+        `https://api.fda.gov/drug/label.json?search=pharm_class_epc:${categoryQuery}&limit=${limit}`
+      ];
       
-      try {
-        const categoryResponse = await axios.get(categoryUrl, {
-          timeout: 15000,
-          httpsAgent: agent,
-          headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        
-        if (categoryResponse.data.results) {
-          similar = categoryResponse.data.results
-            .filter((result: any) => 
-              result.openfda?.brand_name?.[0] !== drugName && 
-              result.openfda?.generic_name?.[0] !== drugName
-            )
-            .slice(0, limit)
-            .map(mapFdaResult);
+      console.log('Category search URLs:', categoryUrls);
+      
+      for (const categoryUrl of categoryUrls) {
+        try {
+          console.log('Trying URL:', categoryUrl);
+          const categoryResponse = await axios.get(categoryUrl, {
+            timeout: 15000,
+            httpsAgent: agent,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          });
+          
+          if (categoryResponse.data.results) {
+            similar = categoryResponse.data.results
+              .filter((result: any) => 
+                result.openfda?.brand_name?.[0] !== drugName && 
+                result.openfda?.generic_name?.[0] !== drugName
+              )
+              .slice(0, limit)
+              .map(mapFdaResult);
+            console.log('Category search successful, found', similar.length, 'results');
+          }
+        } catch (categoryError: any) {
+          console.log('Category search failed for URL:', categoryUrl, 'Error:', categoryError.message);
+          continue; // Try next URL
         }
-      } catch (categoryError) {
-        console.log('Category search failed:', categoryError);
       }
     }
 
@@ -122,7 +133,7 @@ export async function POST(req: Request) {
       for (const pattern of patterns) {
         if (similar.length >= limit) break;
         
-        const patternQuery = encodeURIComponent(pattern);
+        const patternQuery = pattern.trim().replace(/\s+/g, '%20');
         const patternUrl = `https://api.fda.gov/drug/label.json?search=(openfda.generic_name:${patternQuery}*)&limit=${limit - similar.length}`;
         
         try {
@@ -152,7 +163,7 @@ export async function POST(req: Request) {
     // Search for alternatives in FDA database
     const alternativeResults: any[] = [];
     for (const alt of alternatives.slice(0, 4)) { // Limit to 4 alternatives
-      const altQuery = encodeURIComponent(alt.trim());
+      const altQuery = alt.trim().replace(/\s+/g, '%20');
       const altUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${altQuery}+OR+openfda.generic_name:${altQuery})&limit=1`;
       
       try {

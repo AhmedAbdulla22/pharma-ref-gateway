@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { 
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { 
   AlertTriangle, 
   Activity, 
   AlertCircle, 
@@ -28,7 +35,10 @@ import {
   Stethoscope,
   Baby,
   Search,
-  Pill
+  ChevronRight, 
+  ChevronLeft,
+  Pill, 
+  SearchX
 } from "lucide-react"
 import Link from "next/link"
 
@@ -89,9 +99,12 @@ export default function DrugDetailPage() {
   }
 
   const handleFindSimilar = async () => {
-    if (!drug || isLoadingSimilar) return
+    if (!drug) return
     
+    // 1. Open the sheet immediately so the user sees the loader
+    setShowSimilar(true) 
     setIsLoadingSimilar(true)
+    
     try {
       const response = await fetch('/api/similar-drugs', {
         method: 'POST',
@@ -106,7 +119,7 @@ export default function DrugDetailPage() {
       const data = await response.json()
       setSimilarDrugs(data.similar || [])
       setAlternatives(data.alternatives || [])
-      setShowSimilar(true)
+      
     } catch (error) {
       console.error('Failed to find similar drugs:', error)
     } finally {
@@ -148,6 +161,44 @@ export default function DrugDetailPage() {
   return { data, isUnavailable }
 }
 
+function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, onClick: () => void }) {
+  return (
+    <Link href={`/drug/${encodeURIComponent(item.name)}`} onClick={onClick} className="block group">
+      <div className="relative overflow-hidden p-4 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/50 transition-all duration-300 shadow-sm hover:shadow-md">
+        
+        {/* Hover Gradient Effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        <div className={`relative flex items-center gap-4 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
+          
+          {/* Icon Box */}
+          <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Pill className="h-5 w-5" />
+          </div>
+
+          {/* Text Content */}
+          <div className={`flex-1 min-w-0 text-left ${isRTL ? "text-right" : ""}`}>
+            <div className="flex items-center justify-between mb-0.5">
+              <h4 className="font-bold text-sm text-foreground truncate pr-2">{item.name}</h4>
+              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                {item.category?.split(' ')[0] || 'Drug'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground font-mono truncate">
+              {item.scientificName}
+            </p>
+          </div>
+
+          {/* Arrow Icon */}
+          <div className="text-muted-foreground/30 group-hover:text-primary transition-colors">
+            {isRTL ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
   return (
     <>
     <PageWrapper>
@@ -172,21 +223,130 @@ export default function DrugDetailPage() {
               <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
                 {drug.category}
               </Badge>
-              <Button
-                onClick={handleFindSimilar}
-                disabled={isLoadingSimilar}
-                variant="outline"
-                className="gap-2 border-border hover:bg-accent/30"
-              >
-                {isLoadingSimilar ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                {language === "en" ? "Find Similar" : 
-                 language === "ar" ? "ابحث عن مشابه" : 
-                 "دۆزینەوەی هاوشێوە"}
-              </Button>
+
+                  <Button
+                    onClick={handleFindSimilar}
+                    disabled={isLoadingSimilar}
+                    variant="outline"
+                    className="gap-2 border-border hover:bg-accent/30"
+                  >
+                    {isLoadingSimilar ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    {language === "en" ? "Find Similar" : 
+                     language === "ar" ? "ابحث عن مشابه" : 
+                     "دۆزینەوەی هاوشێوە"}
+                  </Button>
+
+              <Sheet open={showSimilar} onOpenChange={setShowSimilar}>
+                {/* Note: We removed the SheetTrigger to prevent early opening */}
+                
+                <SheetContent 
+                  side={isRTL ? "left" : "right"} 
+                  className="w-full sm:max-w-md flex flex-col h-full p-0 gap-0 border-l"
+                >
+                  {/* --- STICKY HEADER --- */}
+                  <SheetHeader className="p-6 border-b bg-background/80 backdrop-blur-sm z-10">
+                    <SheetTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      {language === "en" ? "Related Medications" : 
+                      language === "ar" ? "أدوية ذات صلة" : 
+                      "دەرمانە پەیوەندیدارەکان"}
+                    </SheetTitle>
+                    <div className="text-xs text-muted-foreground font-normal">
+                      {language === "en" ? `Searching for matches to ${drug.name}` :
+                      language === "ar" ? `البحث عن بدائل لـ ${drug.name}` :
+                      `گەڕان بۆ هاوشێوەکانی ${drug.name}`}
+                    </div>
+                  </SheetHeader>
+
+                  {/* --- SCROLLABLE CONTENT AREA --- */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    
+                    {/* 1. LOADING STATE */}
+                    {isLoadingSimilar && (
+                      <div className="flex flex-col items-center justify-center h-[50vh] space-y-6 animate-pulse">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                        <div className="space-y-2 text-center">
+                          <p className="text-sm font-medium">
+                            {language === "en" ? "Analyzing active ingredients..." :
+                            language === "ar" ? "جاري تحليل المكونات الفعالة..." :
+                            "شیکردنەوەی پێکهاتە چالاکەکان..."}
+                          </p>
+                          <p className="text-xs text-muted-foreground">AI Llama 3.3</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. RESULTS STATE */}
+                    {!isLoadingSimilar && (
+                      <div className="space-y-8 pb-10">
+                        
+                        {/* --- A. ALTERNATIVES (Strong Matches) --- */}
+                        {alternatives.length > 0 && (
+                          <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                              {language === "en" ? "Exact Alternatives" : 
+                              language === "ar" ? "بدائل مطابقة" : 
+                              "بەدیلە دیاریکراوەکان"}
+                            </h3>
+                            <div className="grid gap-3">
+                              {alternatives.map((item: any, i: number) => (
+                                <SimilarDrugCard 
+                                  key={`alt-${i}`} 
+                                  item={item} 
+                                  isRTL={isRTL} 
+                                  onClick={() => setShowSimilar(false)} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* --- B. SIMILAR DRUGS (Category Matches) --- */}
+                        {similarDrugs.length > 0 && (
+                          <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                              <Beaker className="h-3.5 w-3.5 text-blue-500" />
+                              {language === "en" ? "Similar Class" : 
+                              language === "ar" ? "من نفس الفئة" : 
+                              "لە هەمان جۆر"}
+                            </h3>
+                            <div className="grid gap-3">
+                              {similarDrugs.map((item: any, i: number) => (
+                                <SimilarDrugCard 
+                                  key={`sim-${i}`} 
+                                  item={item} 
+                                  isRTL={isRTL} 
+                                  onClick={() => setShowSimilar(false)} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* --- C. EMPTY STATE --- */}
+                        {similarDrugs.length === 0 && alternatives.length === 0 && (
+                          <div className="h-[50vh] flex flex-col items-center justify-center text-center opacity-80">
+                            <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                              <SearchX className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <h4 className="font-semibold text-lg">No Matches Found</h4>
+                            <p className="text-sm text-muted-foreground max-w-[200px] mt-2">
+                              We couldn't find precise alternatives for this specific medication configuration.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
@@ -302,16 +462,6 @@ export default function DrugDetailPage() {
           </div>
         </div>
 
-        {/* Similar Drugs Section */}
-        {showSimilar && (
-          <SimilarDrugsSection 
-            similarDrugs={similarDrugs} 
-            alternatives={alternatives} 
-            language={language} 
-            isRTL={isRTL} 
-          />
-        )}
-
         {/* --- SECTION: MEDICAL DISCLAIMER --- */}
         <Card className={`bg-red-950/10 border-red-900/20 mt-12 ${isRTL ? "text-right" : "text-left"}`}>
           <CardContent className={`p-6 flex gap-4 items-start ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
@@ -371,66 +521,6 @@ function SafetyCard({ title, content }: any) {
     <div className="p-3 rounded-lg bg-card border-border">
       <h5 className="text-[10px] font-bold text-muted-foreground mb-1">{title} Use</h5>
       <p className="text-[11px] text-muted-foreground line-clamp-3 hover:line-clamp-none cursor-pointer">{content}</p>
-    </div>
-  )
-}
-
-// Similar Drugs Component
-function SimilarDrugsSection({ similarDrugs, alternatives, language, isRTL }: any) {
-  if (similarDrugs.length === 0 && alternatives.length === 0) return null;
-
-  return (
-    <div className="space-y-6 pt-4">
-      <div className={`flex items-center gap-2 text-primary border-b border-primary/20 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-        <Search className="h-5 w-5" />
-        <h2 className="text-xl font-bold tracking-wide uppercase">
-          {language === "en" ? "Similar & Alternative Medications" : 
-           language === "ar" ? "أدوية مماثلة وبديلة" : 
-           "دەرمانە هاوشێوە و بەدیلەکان"}
-        </h2>
-      </div>
-
-      {alternatives.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">
-            {language === "en" ? "Alternatives" : 
-             language === "ar" ? "البدائل" : 
-             "بەدیلەکان"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {alternatives.map((drug: any, index: number) => (
-              <Link key={`alt-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`}>
-                <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                  <div className="font-medium text-foreground">{drug.name}</div>
-                  <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {similarDrugs.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">
-            {language === "en" ? "Similar Medications" : 
-             language === "ar" ? "أدوية مماثلة" : 
-             "دەرمانە هاوشێوەکان"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {similarDrugs.map((drug: any, index: number) => (
-              <Link key={`sim-${index}`} href={`/drug/${encodeURIComponent(drug.name)}`}>
-                <div className="p-4 bg-card border border-border rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                  <div className="font-medium text-foreground">{drug.name}</div>
-                  <div className="text-sm text-muted-foreground">{drug.scientificName}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{drug.category}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
