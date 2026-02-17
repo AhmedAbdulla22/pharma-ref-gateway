@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, AlertCircle, CheckCircle, Zap, X, Loader2, Plus, Search, ChevronDown } from "lucide-react"
+import { AlertTriangle, AlertCircle, CheckCircle, Zap, X, Loader2, Plus, Search, ChevronDown, ShieldCheck } from "lucide-react"
 
+// --- TYPES ---
 interface Interaction {
   severity: "critical" | "moderate" | "minor"
   title: { en: string; ar: string; ku: string }
@@ -32,31 +33,39 @@ interface Drug {
 interface DrugSearchInputProps {
   value: string
   onChange: (value: string, drug?: Drug) => void
+  onRemove?: () => void
   placeholder: string
   isRTL: boolean
   language: string
   index: number
 }
 
-function DrugSearchInput({ value, onChange, placeholder, isRTL, language, index }: DrugSearchInputProps) {
+// --- COMPONENT: Drug Search Input ---
+function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, language, index }: DrugSearchInputProps) {
+  // Initialize state with prop, but don't strictly sync it on every render to avoid cursor jumps
   const [searchQuery, setSearchQuery] = useState(value)
   const [searchResults, setSearchResults] = useState<Drug[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null) // FIXED: Use ref for debounce
 
+  // Sync internal state if parent changes it externally (e.g. "Clear All" button)
   useEffect(() => {
-    setSearchQuery(value)
+    if (value !== searchQuery) {
+      setSearchQuery(value)
+    }
   }, [value])
 
+  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
@@ -65,6 +74,7 @@ function DrugSearchInput({ value, onChange, placeholder, isRTL, language, index 
     if (!query.trim()) {
       setSearchResults([])
       setIsOpen(false)
+      setIsSearching(false)
       return
     }
 
@@ -90,65 +100,81 @@ function DrugSearchInput({ value, onChange, placeholder, isRTL, language, index 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setSearchQuery(newValue)
-    onChange(newValue) // Update parent state immediately
+    onChange(newValue, undefined) // Notify parent that strict drug selection is cleared
     
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      handleSearch(newValue)
-    }, 300)
+    // FIXED: Proper debounce logic
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
 
-    return () => clearTimeout(timeoutId)
+    debounceTimerRef.current = setTimeout(() => {
+      handleSearch(newValue)
+    }, 500) // Increased to 500ms for better performance
   }
 
   const handleSelectDrug = (drug: Drug) => {
     setSearchQuery(drug.name)
-    onChange(drug.name, drug)
+    onChange(drug.name, drug) // Pass the full drug object
     setIsOpen(false)
     setSearchResults([])
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <div className="relative">
+    <div className="flex gap-2 w-full" ref={dropdownRef}>
+      <div className="relative flex-1">
         <Input
           ref={inputRef}
           placeholder={placeholder}
           value={searchQuery}
           onChange={handleInputChange}
-          onFocus={() => searchResults.length > 0 && setIsOpen(true)}
-          className="flex-1 pr-10"
+          onFocus={() => {
+            if (searchResults.length > 0) setIsOpen(true)
+          }}
+          className={`flex-1 ${isRTL ? 'pl-10' : 'pr-10'}`} // Fix padding based on RTL
           dir={isRTL ? "rtl" : "ltr"}
         />
-        <div className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2`}>
+        
+        {/* Search Icon / Loader */}
+        <div className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 pointer-events-none`}>
           {isSearching ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           ) : (
             <Search className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
+
+        {/* Dropdown Results */}
+        {isOpen && searchResults.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+            {searchResults.map((drug, idx) => (
+              <button
+                key={`${drug.id}-${idx}`}
+                className={`w-full px-4 py-2.5 hover:bg-muted/80 transition-colors flex items-center justify-between group ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                onClick={() => handleSelectDrug(drug)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{drug.name}</div>
+                  <div className="text-xs text-muted-foreground truncate opacity-80 group-hover:opacity-100">{drug.scientificName}</div>
+                </div>
+                {/* <ChevronDown className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
+                <Plus className="h-3 w-3 text-muted-foreground/50" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {isOpen && searchResults.length > 0 && (
-        <div className={`absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto ${isRTL ? 'text-right' : ''}`}>
-          {searchResults.map((drug, idx) => (
-            <button
-              key={`${drug.id}-${idx}`}
-              className={`w-full px-3 py-2 hover:bg-muted transition-colors flex items-center justify-between ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
-              onClick={() => handleSelectDrug(drug)}
-            >
-              <div className="flex-1">
-                <div className="font-medium text-sm">{drug.name}</div>
-                <div className="text-xs text-muted-foreground">{drug.scientificName}</div>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground rotate-270" />
-            </button>
-          ))}
-        </div>
+      {/* Remove Button (Moved inside the component to handle layout better) */}
+      {onRemove && (
+        <Button variant="outline" size="icon" onClick={onRemove} className="shrink-0">
+          <X className="h-4 w-4 text-muted-foreground" />
+        </Button>
       )}
     </div>
   )
 }
 
+// --- MAIN COMPONENT ---
 export function InteractionChecker() {
   const { language, t, isRTL } = useLanguage()
   const [drugs, setDrugs] = useState<{ name: string; drug?: Drug }[]>([{ name: "" }, { name: "" }])
@@ -160,6 +186,8 @@ export function InteractionChecker() {
     const newDrugs = [...drugs]
     newDrugs[index] = { name: value, drug }
     setDrugs(newDrugs)
+    // Clear results if user changes input, forcing them to re-check
+    if (result) setResult(null)
   }
 
   const addDrug = () => {
@@ -170,13 +198,22 @@ export function InteractionChecker() {
 
   const removeDrug = (index: number) => {
     if (drugs.length > 2) {
-      setDrugs(drugs.filter((_, i) => i !== index))
+      const newDrugs = drugs.filter((_, i) => i !== index)
+      setDrugs(newDrugs)
+      setResult(null)
+    } else {
+      // If only 2 drugs, just clear the field instead of removing the row
+      updateDrug(index, "")
     }
   }
 
   const checkInteraction = async () => {
     const filledDrugs = drugs.filter((d) => d.name.trim())
-    if (filledDrugs.length < 2) return
+    
+    if (filledDrugs.length < 2) {
+      setError(language === "en" ? "Please enter at least two medications." : language === "ar" ? "يرجى إدخال دواءين على الأقل." : "تکایە لانی کەم دوو دەرمان داخل بکە.")
+      return
+    }
 
     setIsLoading(true)
     setError(null)
@@ -213,70 +250,64 @@ export function InteractionChecker() {
     setError(null)
   }
 
-  const getSeverityConfig = (severity: "critical" | "moderate" | "minor" | "safe" | "unknown" | "error") => {
-    switch (severity) {
+  // FIXED: Logic was returning objects in default case incorrectly
+  const getSeverityConfig = (severity: string) => {
+    const s = severity?.toLowerCase()
+    
+    switch (s) {
       case "critical":
+      case "high": // Handle potential AI variations
+      case "major":
         return {
           icon: AlertTriangle,
           label: t("critical"),
-          desc: t("criticalDesc"),
-          className: "bg-critical text-critical-foreground",
-          borderClass: "border-critical",
+          className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+          borderClass: "border-red-500",
           badgeVariant: "destructive" as const,
         }
       case "moderate":
+      case "medium":
         return {
           icon: AlertCircle,
           label: t("moderate"),
-          desc: t("moderateDesc"),
-          className: "bg-moderate text-moderate-foreground",
-          borderClass: "border-moderate",
-          badgeVariant: "secondary" as const,
+          className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+          borderClass: "border-amber-500",
+          badgeVariant: "secondary" as const, // Changed to secondary (usually gray/orange) vs default
         }
       case "minor":
+      case "low":
         return {
-          icon: AlertCircle,
+          icon: CheckCircle, // Changed icon for minor
           label: language === "en" ? "Minor" : language === "ar" ? "طفيف" : "کەم",
-          desc: language === "en" ? "Low risk interaction" : language === "ar" ? "تفاعل منخفض الخطورة" : "کاریلێکی کەم خەتەر",
-          className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-          borderClass: "border-yellow-300 dark:border-yellow-700",
+          className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+          borderClass: "border-blue-400",
           badgeVariant: "outline" as const,
         }
       case "safe":
+      case "none":
         return {
-          icon: CheckCircle,
+          icon: ShieldCheck,
           label: t("safe"),
-          desc: t("safeDesc"),
-          className: "bg-safe text-safe-foreground",
-          borderClass: "border-safe",
+          className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+          borderClass: "border-green-500",
           badgeVariant: "outline" as const,
         }
       case "unknown":
         return {
           icon: AlertCircle,
           label: language === "en" ? "Unknown" : language === "ar" ? "غير معروف" : "نەزانراو",
-          desc: language === "en" ? "Insufficient data" : language === "ar" ? "بيانات غير كافية" : "زانیاری پێویست نییە",
-          className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-          borderClass: "border-gray-300 dark:border-gray-600",
+          className: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300",
+          borderClass: "border-gray-400",
           badgeVariant: "outline" as const,
-        }
-      case "error":
-        return {
-          icon: AlertTriangle,
-          label: language === "en" ? "Error" : language === "ar" ? "خطأ" : "هەڵە",
-          desc: language === "en" ? "Analysis failed" : language === "ar" ? "فشل التحليل" : "شیکاری سەرکەوتوو نەبو",
-          className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-          borderClass: "border-red-300 dark:border-red-700",
-          badgeVariant: "destructive" as const,
         }
       default:
+        // Fallback for "error" or unmapped types
         return {
-          icon: CheckCircle,
-          label: t("safe"),
-          desc: t("safeDesc"),
-          className: "bg-safe text-safe-foreground",
-          borderClass: "border-safe",
-          badgeVariant: "outline" as const,
+          icon: AlertTriangle,
+          label: language === "en" ? "Attention" : language === "ar" ? "تنبيه" : "ئاگاداری",
+          className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+          borderClass: "border-gray-300",
+          badgeVariant: "secondary" as const,
         }
     }
   }
@@ -284,42 +315,44 @@ export function InteractionChecker() {
   const filledDrugsCount = drugs.filter((d) => d.name.trim()).length
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <Zap className="h-5 w-5 text-primary" />
+    <Card className="w-full shadow-lg border-border/50">
+      <CardHeader className="pb-4 border-b">
+        <CardTitle className={`flex items-center gap-2.5 text-xl ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="p-2 bg-amber-500/10 rounded-lg">
+            <Zap className="h-5 w-5 text-amber-500" />
+          </div>
           {t("interactionChecker")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      
+      <CardContent className="space-y-6 pt-6">
         {/* Drug Inputs */}
         <div className="space-y-3">
           {drugs.map((drug, index) => (
-            <div key={index} className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <DrugSearchInput
-                value={drug.name}
-                onChange={(value, selectedDrug) => updateDrug(index, value, selectedDrug)}
-                placeholder={
-                  language === "en"
-                    ? `Drug ${index + 1} (e.g., Aspirin, Ibuprofen)`
-                    : language === "ar"
-                      ? `الدواء ${index + 1} (مثل: أسبرين، إيبوبروفين)`
-                      : `دەرمان ${index + 1} (وەک: ئەسپرین، ئیبوپروفین)`
-                }
-                isRTL={isRTL}
-                language={language}
-                index={index}
-              />
-              {drugs.length > 2 && (
-                <Button variant="outline" size="icon" onClick={() => removeDrug(index)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            <DrugSearchInput
+              key={index} // Note: Using index as key is okay for simple inputs, ideally use unique IDs
+              index={index}
+              value={drug.name}
+              onChange={(value, selectedDrug) => updateDrug(index, value, selectedDrug)}
+              onRemove={drugs.length > 2 ? () => removeDrug(index) : undefined}
+              placeholder={
+                language === "en"
+                  ? `Drug ${index + 1} (e.g., Aspirin)`
+                  : language === "ar"
+                    ? `الدواء ${index + 1} (مثل: أسبرين)`
+                    : `دەرمان ${index + 1} (وەک: ئەسپرین)`
+              }
+              isRTL={isRTL}
+              language={language}
+            />
           ))}
 
           {drugs.length < 5 && (
-            <Button variant="outline" onClick={addDrug} className={`w-full gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Button 
+              variant="ghost" 
+              onClick={addDrug} 
+              className={`w-full gap-2 border border-dashed border-border hover:border-primary/50 h-12 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
               <Plus className="h-4 w-4" />
               {language === "en" ? "Add another drug" : language === "ar" ? "أضف دواء آخر" : "دەرمانێکی تر زیاد بکە"}
             </Button>
@@ -327,114 +360,104 @@ export function InteractionChecker() {
         </div>
 
         {/* Check Button */}
-        <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Button
             onClick={checkInteraction}
             disabled={filledDrugsCount < 2 || isLoading}
-            className={`flex-1 h-12 text-base ${filledDrugsCount >= 2 && !isLoading ? "animate-pulse-ring" : ""}`}
+            className={`flex-1 h-12 text-base font-semibold shadow-md transition-all ${filledDrugsCount >= 2 && !isLoading ? "bg-primary hover:bg-primary/90" : ""}`}
           >
-            {isLoading ? <Loader2 className={`h-5 w-5 ${isRTL ? 'ms-2' : 'me-2'} animate-spin`} /> : <Zap className={`h-5 w-5 ${isRTL ? 'ms-2' : 'me-2'}`} />}
+            {isLoading ? <Loader2 className={`h-5 w-5 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Zap className={`h-5 w-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />}
             {isLoading
-              ? language === "en"
-                ? "Checking..."
-                : language === "ar"
-                  ? "جاري الفحص..."
-                  : "پشکنین..."
+              ? language === "en" ? "Analyzing..." : language === "ar" ? "جاري التحليل..." : "شیکردنەوە..."
               : t("checkInteractions")}
           </Button>
+          
           {filledDrugsCount > 0 && (
-            <Button variant="outline" size="icon" className="h-12 w-12 bg-transparent" onClick={clearSelection}>
-              <X className="h-5 w-5" />
+            <Button 
+              variant="outline" 
+              className="h-12 px-4 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50" 
+              onClick={clearSelection}
+              title="Clear all"
+            >
+              {language === "en" ? "Reset" : language === "ar" ? "إعادة تعيين" : "سڕینەوە"}
             </Button>
           )}
         </div>
 
-        {/* Error */}
+        {/* Error Message */}
         {error && (
-          <div className="p-4 bg-destructive/10 border border-destructive rounded-lg text-center">
-            <p className="text-destructive text-sm">{error}</p>
+          <div className={`p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
           </div>
         )}
 
-        {/* Loading */}
-        {isLoading && (
-          <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {language === "en"
-                ? "Analyzing drug interactions..."
-                : language === "ar"
-                  ? "جاري تحليل التفاعلات الدوائية..."
-                  : "شیکاری کارلێکی دەرمانەکان..."}
-            </p>
-          </div>
-        )}
-
-        {/* Results */}
+        {/* Results Section */}
         {result && !isLoading && (
-          <div className="pt-4 border-t space-y-4">
-            {/* Overall Risk */}
-            <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <h4 className="text-sm font-medium">{t("interactionResult")}</h4>
-              <Badge variant={getSeverityConfig(result.overallRisk).badgeVariant}>
+          <div className="pt-6 border-t animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* Overall Status Badge */}
+            <div className={`flex items-center justify-between mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <h4 className="text-lg font-bold">{t("interactionResult")}</h4>
+              <Badge 
+                variant={getSeverityConfig(result.overallRisk).badgeVariant}
+                className="px-3 py-1 text-sm uppercase tracking-wide"
+              >
                 {getSeverityConfig(result.overallRisk).label}
               </Badge>
             </div>
 
-            {/* Summary */}
-            <div className={`p-4 rounded-lg bg-muted/50 border ${isRTL ? "text-right" : ""}`}>
-              <p className="text-sm">{result.summary[language]}</p>
+            {/* AI Summary Box */}
+            <div className={`p-5 rounded-xl bg-muted/40 border border-border/50 mb-6 ${isRTL ? "text-right" : ""}`}>
+              <p className="text-sm leading-relaxed text-foreground/90">{result.summary[language]}</p>
             </div>
 
-            {/* Individual Interactions */}
-            {result.interactions.map((interaction, index) => {
-              const config = getSeverityConfig(interaction.severity)
-              const Icon = config.icon
+            {/* Interactions List */}
+            <div className="space-y-4">
+              {result.interactions.map((interaction, index) => {
+                const config = getSeverityConfig(interaction.severity)
+                const Icon = config.icon
 
-              return (
-                <div key={index} className={`rounded-lg border-2 ${config.borderClass} overflow-hidden`}>
-                  <div
-                    className={`${config.className} px-4 py-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-bold">{interaction.title[language]}</span>
+                return (
+                  <div key={index} className={`rounded-xl border overflow-hidden bg-card ${config.borderClass} shadow-sm transition-all hover:shadow-md`}>
+                    {/* Header */}
+                    <div className={`${config.className} px-4 py-3 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="font-bold text-sm md:text-base">{interaction.title[language]}</span>
+                    </div>
+                    
+                    {/* Body */}
+                    <div className={`p-5 space-y-4 ${isRTL ? "text-right" : ""}`}>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {interaction.description[language]}
+                      </p>
+                      
+                      {interaction.recommendations[language].length > 0 && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 opacity-70">
+                            {language === "en" ? "Recommendation" : language === "ar" ? "التوصيات" : "پێشنیار"}
+                          </p>
+                          <ul className={`text-sm space-y-1.5 ${isRTL ? 'mr-1' : 'ml-1'}`}>
+                            {interaction.recommendations[language].map((rec, i) => (
+                              <li key={i} className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                                <span className="text-primary mt-1">•</span>
+                                <span>{rec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className={`p-4 bg-card space-y-3 ${isRTL ? "text-right" : ""}`}>
-                    <p className="text-sm leading-relaxed">{interaction.description[language]}</p>
-                    {interaction.recommendations[language].length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                          {language === "en" ? "Recommendations:" : language === "ar" ? "التوصيات:" : "پێشنیارەکان:"}
-                        </p>
-                        <ul className={`text-sm space-y-1 ${isRTL ? 'mr-4' : 'ml-4'}`}>
-                          {interaction.recommendations[language].map((rec, i) => (
-                            <li key={i} className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                              <span className="text-muted-foreground">•</span>
-                              <span>{rec}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
 
-            {/* AI Disclaimer */}
+            {/* Disclaimer */}
             {result.disclaimer && (
-              <div className={`p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 ${isRTL ? "text-right" : ""}`}>
-                <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-1">
-                      {language === "en" ? "AI Analysis Disclaimer" : language === "ar" ? "إخلاء مسؤولية التحليل الذكي" : "بێبەشکردنەوەی شیکاری هوشی دەستکرد"}
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                      {result.disclaimer[language]}
-                    </p>
-                  </div>
-                </div>
+              <div className={`mt-6 flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                <AlertTriangle className="h-4 w-4 shrink-0 opacity-70 mt-0.5" />
+                <p>{result.disclaimer[language]}</p>
               </div>
             )}
           </div>
