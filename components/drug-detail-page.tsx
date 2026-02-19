@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Pill, AlertTriangle, Activity, AlertCircle, ArrowLeft, QrCode, Loader2, Beaker } from "lucide-react"
 import Link from "next/link"
 
-// API Response Interface
 interface APIDrug {
   id: string
   name: string
@@ -88,7 +87,6 @@ export default function DrugDetailPage() {
     fetchDrug()
   }, [drugIdParam, language])
 
-  // Helper to get localized text from API response
   const getLocalizedText = (textObj: { en: string[], ar: string[], ku: string[] }) => {
     return textObj[language] || textObj.en || []
   }

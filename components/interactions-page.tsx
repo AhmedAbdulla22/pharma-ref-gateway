@@ -11,7 +11,6 @@ export function InteractionsPage() {
   return (
     <PageWrapper>
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
         <div className={`space-y-2 ${isRTL ? "text-right" : ""}`}>
           <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -21,7 +20,6 @@ export function InteractionsPage() {
           </div>
         </div>
 
-        {/* Interaction Checker */}
         <InteractionChecker />
       </div>
     </PageWrapper>

@@ -18,10 +18,9 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [showHint, setShowHint] = useState(true) // State to show/hide the speech bubble
+  const [showHint, setShowHint] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Initialize greeting
   useEffect(() => {
     const greeting = language === 'ar' 
       ? `مرحباً! أنا مساعدك الصيدلاني. هل لديك أسئلة حول ${drugName}؟` 
@@ -34,7 +33,6 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
     }
   }, [language, drugName])
 
-  // Scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" })
@@ -69,7 +67,6 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
     }
   }
 
-  // Close the hint after 10 seconds automatically
   useEffect(() => {
     const timer = setTimeout(() => setShowHint(false), 10000)
     return () => clearTimeout(timer)
@@ -78,10 +75,8 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
   return (
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-auto font-sans">
       
-      {/* --- 1. OPEN STATE: CHAT WINDOW --- */}
       {isOpen && (
         <Card className="w-[90vw] md:w-[380px] h-[500px] shadow-2xl bg-card border-border flex flex-col mb-4 animate-in slide-in-from-bottom-5 duration-300 rounded-xl overflow-hidden ring-1 ring-border">
-            {/* Header */}
             <CardHeader className="p-4 bg-gradient-to-r from-primary/50 to-muted border-b border-border flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
@@ -99,7 +94,6 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
               </Button>
             </CardHeader>
 
-            {/* Chat Area */}
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-border bg-card/50">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -125,7 +119,6 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
               <div ref={scrollRef} />
             </CardContent>
 
-            {/* Input Area */}
             <CardFooter className="p-3 bg-muted border-t border-border">
               <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full gap-2">
                 <Input 
@@ -143,11 +136,9 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
         </Card>
       )}
 
-      {/* --- 2. CLOSED STATE: PROMINENT BUTTON --- */}
       {!isOpen && (
         <div className="flex flex-col items-end gap-2 group">
           
-          {/* A. The "Hint" Bubble (Visible initially or on hover) */}
           <div className={`
              bg-card text-foreground text-xs font-bold py-2 px-4 rounded-xl shadow-xl mb-1 
              transform transition-all duration-300 origin-bottom-right
@@ -164,7 +155,7 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
              <div className="absolute -bottom-1 right-6 w-2 h-2 bg-background rotate-45 border-r border-b border-border"></div>
           </div>
 
-          {/* B. The Main "Pill" Button */}
+          {/* The Main "Pill" Button */}
           <Button
             onClick={() => setIsOpen(true)}
             className="h-14 pl-4 pr-6 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.3)] bg-primary hover:bg-primary/90 text-foreground border-2 border-border transition-all hover:scale-105 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
@@ -175,7 +166,6 @@ export function DrugChatbot({ drugName, drugContext }: { drugName: string, drugC
                <MessageCircle className="h-6 w-6 relative z-10" />
             </div>
             
-            {/* Text Label */}
             <div className="flex flex-col items-start">
                <span className="text-[10px] uppercase font-bold text-primary-foreground leading-none mb-0.5 opacity-80">
                  {language === 'ar' ? "مساعد" : language === 'ku' ? "یاریدەدەر" : "AI Assistant"}

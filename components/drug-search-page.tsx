@@ -22,7 +22,6 @@ export function DrugSearchPage() {
   const [similarDrugs, setSimilarDrugs] = useState<any[]>([])
   const [alternatives, setAlternatives] = useState<any[]>([])
 
-  // Handle URL parameters for similar drugs
   useEffect(() => {
     const query = searchParams.get('q')
     const results = searchParams.get('results')
@@ -50,7 +49,6 @@ export function DrugSearchPage() {
     setSuggestions([])
 
     try {
-      // Use the updated API route we fixed earlier
       const response = await fetch("/api/drug-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

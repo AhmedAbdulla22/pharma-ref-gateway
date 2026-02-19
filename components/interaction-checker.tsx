@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, AlertCircle, CheckCircle, Zap, X, Loader2, Plus, Search, ChevronDown, ShieldCheck } from "lucide-react"
 
-// --- TYPES ---
 interface Interaction {
   severity: "critical" | "moderate" | "minor"
   title: { en: string; ar: string; ku: string }
@@ -40,9 +39,7 @@ interface DrugSearchInputProps {
   index: number
 }
 
-// --- COMPONENT: Drug Search Input ---
 function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, language, index }: DrugSearchInputProps) {
-  // Initialize state with prop, but don't strictly sync it on every render to avoid cursor jumps
   const [searchQuery, setSearchQuery] = useState(value)
   const [searchResults, setSearchResults] = useState<Drug[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -50,16 +47,14 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
   
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null) // FIXED: Use ref for debounce
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Sync internal state if parent changes it externally (e.g. "Clear All" button)
   useEffect(() => {
     if (value !== searchQuery) {
       setSearchQuery(value)
     }
   }, [value])
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -100,21 +95,20 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setSearchQuery(newValue)
-    onChange(newValue, undefined) // Notify parent that strict drug selection is cleared
+    onChange(newValue, undefined)
     
-    // FIXED: Proper debounce logic
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
 
     debounceTimerRef.current = setTimeout(() => {
       handleSearch(newValue)
-    }, 500) // Increased to 500ms for better performance
+    }, 500)
   }
 
   const handleSelectDrug = (drug: Drug) => {
     setSearchQuery(drug.name)
-    onChange(drug.name, drug) // Pass the full drug object
+    onChange(drug.name, drug)
     setIsOpen(false)
     setSearchResults([])
   }
@@ -130,11 +124,10 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
           onFocus={() => {
             if (searchResults.length > 0) setIsOpen(true)
           }}
-          className={`flex-1 ${isRTL ? 'pl-10' : 'pr-10'}`} // Fix padding based on RTL
+          className={`flex-1 ${isRTL ? 'pl-10' : 'pr-10'}`}
           dir={isRTL ? "rtl" : "ltr"}
         />
         
-        {/* Search Icon / Loader */}
         <div className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 pointer-events-none`}>
           {isSearching ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -143,7 +136,6 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
           )}
         </div>
 
-        {/* Dropdown Results */}
         {isOpen && searchResults.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
             {searchResults.map((drug, idx) => (
@@ -156,7 +148,6 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
                   <div className="font-medium text-sm truncate">{drug.name}</div>
                   <div className="text-xs text-muted-foreground truncate opacity-80 group-hover:opacity-100">{drug.scientificName}</div>
                 </div>
-                {/* <ChevronDown className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
                 <Plus className="h-3 w-3 text-muted-foreground/50" />
               </button>
             ))}
@@ -164,7 +155,6 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
         )}
       </div>
 
-      {/* Remove Button (Moved inside the component to handle layout better) */}
       {onRemove && (
         <Button variant="outline" size="icon" onClick={onRemove} className="shrink-0">
           <X className="h-4 w-4 text-muted-foreground" />
@@ -174,7 +164,6 @@ function DrugSearchInput({ value, onChange, onRemove, placeholder, isRTL, langua
   )
 }
 
-// --- MAIN COMPONENT ---
 export function InteractionChecker() {
   const { language, t, isRTL } = useLanguage()
   const [drugs, setDrugs] = useState<{ name: string; drug?: Drug }[]>([{ name: "" }, { name: "" }])
@@ -186,7 +175,6 @@ export function InteractionChecker() {
     const newDrugs = [...drugs]
     newDrugs[index] = { name: value, drug }
     setDrugs(newDrugs)
-    // Clear results if user changes input, forcing them to re-check
     if (result) setResult(null)
   }
 
@@ -202,7 +190,6 @@ export function InteractionChecker() {
       setDrugs(newDrugs)
       setResult(null)
     } else {
-      // If only 2 drugs, just clear the field instead of removing the row
       updateDrug(index, "")
     }
   }
@@ -250,13 +237,12 @@ export function InteractionChecker() {
     setError(null)
   }
 
-  // FIXED: Logic was returning objects in default case incorrectly
   const getSeverityConfig = (severity: string) => {
     const s = severity?.toLowerCase()
     
     switch (s) {
       case "critical":
-      case "high": // Handle potential AI variations
+      case "high":
       case "major":
         return {
           icon: AlertTriangle,
@@ -272,12 +258,12 @@ export function InteractionChecker() {
           label: t("moderate"),
           className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
           borderClass: "border-amber-500",
-          badgeVariant: "secondary" as const, // Changed to secondary (usually gray/orange) vs default
+          badgeVariant: "secondary" as const,
         }
       case "minor":
       case "low":
         return {
-          icon: CheckCircle, // Changed icon for minor
+          icon: CheckCircle,
           label: language === "en" ? "Minor" : language === "ar" ? "طفيف" : "کەم",
           className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
           borderClass: "border-blue-400",
@@ -301,7 +287,6 @@ export function InteractionChecker() {
           badgeVariant: "outline" as const,
         }
       default:
-        // Fallback for "error" or unmapped types
         return {
           icon: AlertTriangle,
           label: language === "en" ? "Attention" : language === "ar" ? "تنبيه" : "ئاگاداری",
@@ -326,11 +311,10 @@ export function InteractionChecker() {
       </CardHeader>
       
       <CardContent className="space-y-6 pt-6">
-        {/* Drug Inputs */}
         <div className="space-y-3">
           {drugs.map((drug, index) => (
             <DrugSearchInput
-              key={index} // Note: Using index as key is okay for simple inputs, ideally use unique IDs
+              key={index}
               index={index}
               value={drug.name}
               onChange={(value, selectedDrug) => updateDrug(index, value, selectedDrug)}
@@ -359,7 +343,6 @@ export function InteractionChecker() {
           )}
         </div>
 
-        {/* Check Button */}
         <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Button
             onClick={checkInteraction}
@@ -384,7 +367,6 @@ export function InteractionChecker() {
           )}
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className={`p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -392,7 +374,6 @@ export function InteractionChecker() {
           </div>
         )}
 
-        {/* Results Section */}
         {result && !isLoading && (
           <div className="pt-6 border-t animate-in fade-in slide-in-from-bottom-4 duration-500">
             

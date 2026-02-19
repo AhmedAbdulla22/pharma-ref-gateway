@@ -44,12 +44,10 @@ export function DrugCard({ drug }: DrugCardProps) {
   const [similarDrugs, setSimilarDrugs] = useState<any[]>([])
   const [alternatives, setAlternatives] = useState<any[]>([])
 
-  // --- 1. HANDLE FIND SIMILAR (Opens Sheet Immediately) ---
   const handleFindSimilar = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    // Open sheet immediately to show loader
     setShowSimilar(true)
     
     if (isLoadingSimilar) return
@@ -255,7 +253,6 @@ export function DrugCard({ drug }: DrugCardProps) {
   )
 }
 
-// --- REUSABLE MINI CARD COMPONENT ---
 function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, onClick: () => void }) {
   return (
     <Link href={`/drug/${encodeURIComponent(item.name)}`} onClick={onClick} className="block group">

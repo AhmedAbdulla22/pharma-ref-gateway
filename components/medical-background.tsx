@@ -3,10 +3,8 @@
 export function MedicalBackground() {
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-      {/* Gradient base layer */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 dark:from-primary/10 dark:via-transparent dark:to-primary/5" />
 
-      {/* Animated floating elements */}
       <svg
         className="absolute inset-0 w-full h-full opacity-[0.08] dark:opacity-[0.12]"
         xmlns="http://www.w3.org/2000/svg"

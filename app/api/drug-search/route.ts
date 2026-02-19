@@ -18,7 +18,6 @@ export async function POST(req: Request) {
   }
 
   const cleanQuery = encodeURIComponent(query.trim());
-  // Using wildcard (*) to find partial matches
   const fdaUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${cleanQuery}*+OR+openfda.generic_name:${cleanQuery}*)&limit=20`;
 
   const agent = new https.Agent({  
@@ -38,10 +37,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ drugs: mapFdaResults(results) });
     }
     
-    // If no results found, try to find a translation
     const translation = findDrugTranslation(query);
     if (translation && translation !== query.toLowerCase()) {
-      // Search with the translated name
       const translatedQuery = encodeURIComponent(translation.trim());
       const translatedUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${translatedQuery}*+OR+openfda.generic_name:${translatedQuery}*)&limit=20`;
       
@@ -54,7 +51,6 @@ export async function POST(req: Request) {
         
         const translatedResults = translatedResponse.data.results;
         if (translatedResults && translatedResults.length > 0) {
-          // Add translation info to the results
           const drugs = mapFdaResults(translatedResults);
           return NextResponse.json({ 
             drugs,
@@ -66,12 +62,10 @@ export async function POST(req: Request) {
           });
         }
       } catch (translationError) {
-        // If translation search fails, continue to suggestions
         console.log('Translation search failed:', translationError);
       }
     }
     
-    // If still no results, provide suggestions
     const suggestions = getSuggestedDrugs(query);
     return NextResponse.json({ 
       drugs: [],
@@ -80,9 +74,7 @@ export async function POST(req: Request) {
     });
     
   } catch (error: any) {
-    // Silent fail for 404 (Not Found)
     if (error.response?.status === 404) {
-      // Try translation fallback for 404 as well
       const translation = findDrugTranslation(query);
       if (translation && translation !== query.toLowerCase()) {
         const translatedQuery = encodeURIComponent(translation.trim());
@@ -124,45 +116,36 @@ export async function POST(req: Request) {
   }
 }
 
-// --- HELPER: Get the best possible category ---
 function getBestCategory(openfda: any) {
-  // 1. Try Established Pharmacologic Class (Best)
   if (openfda.pharm_class_epc?.length) return openfda.pharm_class_epc[0];
   
-  // 2. Try Physiologic Effect (e.g., "Increased Histamine Release")
   if (openfda.pharm_class_pe?.length) return openfda.pharm_class_pe[0];
   
-  // 3. Try Mechanism of Action (e.g., "Histamine H1 Receptor Antagonist")
   if (openfda.pharm_class_moa?.length) return openfda.pharm_class_moa[0];
   
-  // 4. Fallback to Product Type (e.g., "Human OTC Drug")
   if (openfda.product_type?.length) {
-    // Clean up "HUMAN OTC DRUG" -> "OTC Medication"
     return openfda.product_type[0]
       .replace("HUMAN ", "")
       .replace(" DRUG", "")
       .toLowerCase()
-      .replace(/\b\w/g, (l: string) => l.toUpperCase()); // Title Case
+      .replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 
   return "General Medication";
 }
 
-// --- HELPER: Clean up long text ---
 function cleanString(str: string, maxLength: number = 50) {
   if (!str) return "N/A";
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength) + "...";
 }
 
-// 1. Add this translation map at the bottom of the file
 const CATEGORY_TRANSLATIONS: any = {
   "General Medication": { ar: "دواء عام", ku: "دەرمانی گشتی" },
   "Otc Medication": { ar: "دواء بدون وصفة", ku: "دەرمانی بێ ڕەچەتە" },
   "Prescription": { ar: "دواء بوصفة طبية", ku: "دەرمانی بە ڕەچەتە" },
   "Human Otc Drug": { ar: "دواء بشري (بدون وصفة)", ku: "دەرمانی مرۆیی (بێ ڕەچەتە)" },
   "Human Prescription Drug": { ar: "دواء بشري (وصفة)", ku: "دەرمانی مرۆیی (بە ڕەچەتە)" },
-  // Add common mechanisms if you want
   "Histamine H1 Receptor Antagonist": { ar: "مضاد الهيستامين", ku: "دژە هیستامین" },
   "Non-Steroidal Anti-Inflammatory Drug": { ar: "مضاد التهاب غير ستيرويدي", ku: "دژە هەوکردنی ناستیرۆیدی" }
 };
@@ -171,7 +154,7 @@ function getLocalizedCategory(englishCat: string) {
   const trans = CATEGORY_TRANSLATIONS[englishCat];
   return {
     en: englishCat,
-    ar: trans?.ar || englishCat, // Fallback to English if translation missing
+    ar: trans?.ar || englishCat,
     ku: trans?.ku || englishCat
   };
 }
@@ -182,31 +165,24 @@ function mapFdaResults(results: any[]) {
     
     const id = item.id || openfda.application_number?.[0] || `fda-${index}`;
     
-    // Brand Name
     const tradeName = openfda.brand_name?.[0] || openfda.generic_name?.[0] || 'Unknown';
     
-    // Generic Name - Truncated to prevent UI overflow
     const fullGeneric = openfda.generic_name?.[0] || 'N/A';
     const shortGeneric = cleanString(fullGeneric, 40); 
 
-    // Smart Category
     const category = getBestCategory(openfda);
 
-    // Smart Dosage Form (Fallback to Route if Form is missing)
-    // e.g. If "Tablet" is missing, use "Oral"
     const dosageForm = openfda.dosage_form?.[0] || openfda.route?.[0] || 'N/A';
 
-    // Get the English Category first
     const englishCategory = getBestCategory(openfda);
     
-    // Get the Localized Object
     const categoryObj = getLocalizedCategory(englishCategory);
 
     return {
       id: id,
       name: tradeName,
-      scientificName: shortGeneric, // Using cleaned name
-      fullScientificName: fullGeneric, // Keep full name if needed for tooltip
+      scientificName: shortGeneric,
+      fullScientificName: fullGeneric,
       category: englishCategory,
       description: { 
         en: `Class: ${categoryObj.en} | Form: ${dosageForm}`,

@@ -85,7 +85,7 @@ export default function DrugDetailPage() {
   const scrollTo = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 100; // Account for sticky nav
+      const offset = 100;
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = element.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
@@ -101,7 +101,6 @@ export default function DrugDetailPage() {
   const handleFindSimilar = async () => {
     if (!drug) return
     
-    // 1. Open the sheet immediately so the user sees the loader
     setShowSimilar(true) 
     setIsLoadingSimilar(true)
     
@@ -147,54 +146,40 @@ export default function DrugDetailPage() {
   )
 
   const getAiData = (section: any) => {
-  const data = section[language] || section['en'] || []
-  // Check if AI service is unavailable
-  const isUnavailable = data.some((item: string) => 
-    item.includes("temporarily unavailable") || 
-    item.includes("Summary unavailable") ||
-    item.includes("ملخص غير متوفر") ||
-    item.includes("کورتە بەردەست نییە") ||
-    item.includes("All AI services unavailable") ||
-    item.includes("جميع خدمات الذكاء الاصطناعي غير متاحة") ||
-    item.includes("هەموو خزمەتگوزارییەکانی هوشی دەستکرد بەردەست نییە")
-  )
-  return { data, isUnavailable }
-}
+    const data = section[language] || section['en'] || []
+    const isUnavailable = data.some((item: string) => 
+      item.includes("temporarily unavailable") || 
+      item.includes("Summary unavailable") ||
+      item.includes("ملخص غير متوفر") ||
+      item.includes("کورتە بەردەست نییە") ||
+      item.includes("All AI services unavailable") ||
+      item.includes("جميع خدمات الذكاء الاصطناعي غير متاحة") ||
+      item.includes("هەموو خزمەتگوزارییەکانی هوشی دەستکرد بەردەست نییە")
+    )
+    return { data, isUnavailable }
+  }
 
-function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, onClick: () => void }) {
-  return (
-    <Link href={`/drug/${encodeURIComponent(item.name)}`} onClick={onClick} className="block group">
-      <div className="relative overflow-hidden p-4 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/50 transition-all duration-300 shadow-sm hover:shadow-md">
-        
-        {/* Hover Gradient Effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <div className={`relative flex items-center gap-4 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
+  function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, onClick: () => void }) {
+    return (
+      <Link href={`/drug/${encodeURIComponent(item.name)}`} onClick={onClick} className="block group">
+        <div className="relative overflow-hidden p-4 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/50 transition-all duration-300 shadow-sm hover:shadow-md">
           
-          {/* Icon Box */}
-          <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-            <Pill className="h-5 w-5" />
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-          {/* Text Content */}
-          <div className={`flex-1 min-w-0 text-left ${isRTL ? "text-right" : ""}`}>
-            <div className="flex items-center justify-between mb-0.5">
-              <h4 className="font-bold text-sm text-foreground truncate pr-2">{item.name}</h4>
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                {item.category?.split(' ')[0] || 'Drug'}
-              </Badge>
+          <div className={`relative flex items-center gap-4 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
+            
+            <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Pill className="h-5 w-5" />
             </div>
-            <p className="text-xs text-muted-foreground font-mono truncate">
-              {item.scientificName}
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">{item.name}</p>
+            </div>
           </div>
 
-          {/* Arrow Icon */}
           <div className="text-muted-foreground/30 group-hover:text-primary transition-colors">
             {isRTL ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
           </div>
         </div>
-      </div>
     </Link>
   )
 }
@@ -204,7 +189,6 @@ function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, 
     <PageWrapper>
       <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4">
         
-        {/* --- HEADER --- */}
         <div className="space-y-6">
           <Link href="/search">
             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary pl-0">
@@ -482,7 +466,6 @@ function SimilarDrugCard({ item, isRTL, onClick }: { item: any, isRTL: boolean, 
   )
 }
 
-// --- SUB-COMPONENTS FOR CLEANER CODE ---
 
 function SummaryCard({ title, icon, data, border }: any) {
   return (

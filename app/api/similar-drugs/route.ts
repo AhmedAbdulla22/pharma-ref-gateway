@@ -2,16 +2,13 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
 
-// Similar drug categories and classes for finding alternatives
 const DRUG_ALTERNATIVES: Record<string, string[]> = {
-  // Pain relievers
   "acetaminophen": ["ibuprofen", "naproxen", "aspirin", "diclofenac"],
   "ibuprofen": ["acetaminophen", "naproxen", "aspirin", "diclofenac"],
   "naproxen": ["ibuprofen", "acetaminophen", "aspirin", "diclofenac"],
   "aspirin": ["acetaminophen", "ibuprofen", "naproxen", "clopidogrel"],
   "diclofenac": ["ibuprofen", "naproxen", "acetaminophen", "celecoxib"],
   
-  // Antibiotics
   "amoxicillin": ["penicillin", "erythromycin", "clarithromycin", "azithromycin"],
   "penicillin": ["amoxicillin", "erythromycin", "clarithromycin", "azithromycin"],
   "erythromycin": ["azithromycin", "clarithromycin", "amoxicillin", "penicillin"],
@@ -21,7 +18,6 @@ const DRUG_ALTERNATIVES: Record<string, string[]> = {
   "ciprofloxacin": ["levofloxacin", "moxifloxacin", "ofloxacin", "norfloxacin"],
   "trimethoprim": ["sulfamethoxazole", "nitrofurantoin", "fosfomycin", "amoxicillin"],
   
-  // Cardiovascular
   "lisinopril": ["ramipril", "enalapril", "benazepril", "losartan"],
   "ramipril": ["lisinopril", "enalapril", "benazepril", "losartan"],
   "enalapril": ["lisinopril", "ramipril", "benazepril", "losartan"],
@@ -33,24 +29,20 @@ const DRUG_ALTERNATIVES: Record<string, string[]> = {
   "simvastatin": ["atorvastatin", "rosuvastatin", "pravastatin", "lovastatin"],
   "atorvastatin": ["simvastatin", "rosuvastatin", "pravastatin", "lovastatin"],
   
-  // Diabetes
   "metformin": ["glipizide", "glyburide", "pioglitazone", "sitagliptin"],
   "glipizide": ["glyburide", "glimepiride", "metformin", "sitagliptin"],
   "glyburide": ["glipizide", "glimepiride", "metformin", "sitagliptin"],
   "glimepiride": ["glipizide", "glyburide", "metformin", "sitagliptin"],
   
-  // Respiratory
   "albuterol": ["levalbuterol", "pirbuterol", "terbutaline", "salmeterol"],
   "fluticasone": ["budesonide", "beclomethasone", "mometasone", "triamcinolone"],
   "beclomethasone": ["fluticasone", "budesonide", "mometasone", "triamcinolone"],
   "budesonide": ["fluticasone", "beclomethasone", "mometasone", "triamcinolone"],
   
-  // Stomach/GI
   "omeprazole": ["esomeprazole", "lansoprazole", "pantoprazole", "rabeprazole"],
   "lansoprazole": ["omeprazole", "esomeprazole", "pantoprazole", "rabeprazole"],
   "esomeprazole": ["omeprazole", "lansoprazole", "pantoprazole", "rabeprazole"],
   
-  // Mental Health
   "sertraline": ["fluoxetine", "paroxetine", "escitalopram", "citalopram"],
   "fluoxetine": ["sertraline", "paroxetine", "escitalopram", "citalopram"],
   "paroxetine": ["sertraline", "fluoxetine", "escitalopram", "citalopram"],
@@ -71,19 +63,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ similar: [], alternatives: [] });
     }
 
-    const agent = new https.Agent({  
+  const agent = new https.Agent({  
       rejectUnauthorized: false, 
       family: 4 
     });
 
-    // Get alternatives from our mapping
     const alternatives = DRUG_ALTERNATIVES[drugName.toLowerCase()] || [];
-    
-    // Search for similar drugs by category/class
     let similar: any[] = [];
     
     if (category) {
-      // Search for drugs in the same category - try multiple query formats
       const categoryQuery = category.trim().replace(/\s+/g, '+');
       const categoryUrls = [
         `https://api.fda.gov/drug/label.json?search=openfda.pharm_class_epc:${categoryQuery}&limit=${limit}`,
@@ -91,11 +79,8 @@ export async function POST(req: Request) {
         `https://api.fda.gov/drug/label.json?search=pharm_class_epc:${categoryQuery}&limit=${limit}`
       ];
       
-      console.log('Category search URLs:', categoryUrls);
-      
       for (const categoryUrl of categoryUrls) {
         try {
-          console.log('Trying URL:', categoryUrl);
           const categoryResponse = await axios.get(categoryUrl, {
             timeout: 15000,
             httpsAgent: agent,
@@ -110,24 +95,20 @@ export async function POST(req: Request) {
               )
               .slice(0, limit)
               .map(mapFdaResult);
-            console.log('Category search successful, found', similar.length, 'results');
           }
         } catch (categoryError: any) {
-          console.log('Category search failed for URL:', categoryUrl, 'Error:', categoryError.message);
-          continue; // Try next URL
+          continue;
         }
       }
     }
 
-    // If we don't have enough similar drugs, search by generic name patterns
     if (similar.length < 3) {
       const genericName = drugName.toLowerCase();
       
-      // Try to find drugs with similar generic names
       const patterns = [
-        genericName.split(' ')[0], // First word
-        genericName.replace(/\d+mg/g, '').trim(), // Remove dosage
-        genericName.replace(/\s+/g, '*'), // Wildcard search
+        genericName.split(' ')[0],
+        genericName.replace(/\d+mg/g, '').trim(),
+        genericName.replace(/\s+/g, '*'),
       ];
 
       for (const pattern of patterns) {
@@ -155,14 +136,12 @@ export async function POST(req: Request) {
             similar = [...similar, ...patternResults];
           }
         } catch (patternError) {
-          console.log('Pattern search failed:', patternError);
         }
       }
     }
 
-    // Search for alternatives in FDA database
     const alternativeResults: any[] = [];
-    for (const alt of alternatives.slice(0, 4)) { // Limit to 4 alternatives
+    for (const alt of alternatives.slice(0, 4)) {
       const altQuery = alt.trim().replace(/\s+/g, '%20');
       const altUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:${altQuery}+OR+openfda.generic_name:${altQuery})&limit=1`;
       
@@ -177,7 +156,6 @@ export async function POST(req: Request) {
           alternativeResults.push(mapFdaResult(altResponse.data.results[0]));
         }
       } catch (altError) {
-        console.log(`Alternative search failed for ${alt}:`, altError);
       }
     }
 

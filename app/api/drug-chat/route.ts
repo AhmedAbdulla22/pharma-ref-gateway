@@ -5,12 +5,9 @@ import SambaNova from 'sambanova';
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const sambaNova = process.env.SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: process.env.SAMBA_NOVA_API_KEY }) : null;
 
-// Smart Translation System with Fallbacks
-// Priority: 1. SambaNova AI (best for medical translation), 2. Groq AI
 async function translateText(text: string, targetLang: string): Promise<string> {
   if (!text || targetLang === 'en') return text;
   
-  // Try SambaNova AI first
   if (sambaNova) {
     try {
       const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
@@ -33,7 +30,6 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     }
   }
 
-  // Fallback to Groq AI
   if (process.env.GROQ_API_KEY) {
     try {
       const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
@@ -56,7 +52,6 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     }
   }
 
-  // Fallback to original text
   return text;
 }
 
@@ -68,7 +63,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ reply: "I need a valid question." }, { status: 400 });
     }
 
-    // Detect language from message
     const detectLanguage = (text: string): string => {
       const arabicRegex = /[\u0600-\u06FF]/;
       const kurdishRegex = /[\u0750-\u077F\u0840-\u085F]/;
@@ -80,7 +74,6 @@ export async function POST(req: Request) {
 
     const userLanguage = detectLanguage(message);
 
-    // System Prompt: Defines the AI's persona and strict safety rules
     const systemPrompt = `
       You are an expert clinical pharmacist assistant. 
       You are currently answering questions about the drug: "${drugName}".
@@ -102,13 +95,12 @@ export async function POST(req: Request) {
         { role: "user", content: message }
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.3, // Low temperature for factual accuracy
+      temperature: 0.3,
       max_tokens: 300
     });
 
     const englishReply = completion.choices[0].message.content || "";
     
-    // Translate the response if needed
     const translatedReply = userLanguage === 'en' 
       ? englishReply 
       : await translateText(englishReply, userLanguage);

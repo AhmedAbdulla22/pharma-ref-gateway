@@ -7,12 +7,9 @@ import SambaNova from 'sambanova';
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const sambaNova = process.env.SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: process.env.SAMBA_NOVA_API_KEY }) : null;
 
-// Smart Translation System with Fallbacks
-// Priority: 1. SambaNova AI (best for medical translation), 2. Groq AI
 async function translateText(text: string, targetLang: string): Promise<string> {
   if (!text || targetLang === 'en') return text;
   
-  // Try SambaNova AI first
   if (sambaNova) {
     try {
       const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
@@ -35,7 +32,6 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     }
   }
 
-  // Fallback to Groq AI
   if (process.env.GROQ_API_KEY) {
     try {
       const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
@@ -58,11 +54,9 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     }
   }
 
-  // Fallback to original text
   return text;
 }
 
-// AI Interaction Analysis Prompt
 const INTERACTION_PROMPT = `
 You are a medical AI analyzing drug interaction data from FDA labels. 
 
@@ -97,9 +91,6 @@ Response Format:
 IMPORTANT: If no clear interactions are found, return "safe" overall risk with appropriate summary.`;
 
 async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
-  console.log('AI Analysis - Drug Names:', drugNames);
-  console.log('AI Analysis - Drug Data Count:', drugData.length);
-  console.log('AI Analysis - Sample Data:', JSON.stringify(drugData[0], null, 2).substring(0, 500) + '...');
   
   try {
     const completion = await groq.chat.completions.create({
@@ -140,7 +131,6 @@ async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
   }
 }
 
-// Fallback analysis when AI is not available
 function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
   const drugCategories = validDrugData.map(drug => {
     const openfda = drug[0]?.openfda || {};
@@ -150,7 +140,6 @@ function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
     };
   });
 
-  // Basic interaction logic based on drug categories
   const hasNSAIDs = drugCategories.some(d => 
     d.category.toLowerCase().includes('nonsteroidal anti-inflammatory') || 
     d.name.toLowerCase().includes('aspirin') || 
@@ -291,14 +280,12 @@ export async function POST(req: Request) {
       });
     }
 
-    // Try AI analysis first, fallback to basic analysis if AI fails
     try {
       const analysisResult = await aiAnalyzeInteractions(
         validDrugData.map(r => r.data), 
         drugs
       );
       
-      // Check if AI returned meaningful results
       if (analysisResult.interactions && analysisResult.interactions.length > 0) {
         return NextResponse.json(analysisResult);
       }
@@ -306,7 +293,6 @@ export async function POST(req: Request) {
       console.log('AI analysis failed, using fallback:', aiError);
     }
 
-    // Use fallback analysis
     const fallbackResult = getFallbackAnalysis(drugs, validDrugData);
     return NextResponse.json(fallbackResult);
 
