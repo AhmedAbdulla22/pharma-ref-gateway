@@ -1,60 +1,31 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import https from 'https';
-import Groq from "groq-sdk";
-import SambaNova from 'sambanova';
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const sambaNova = process.env.SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: process.env.SAMBA_NOVA_API_KEY }) : null;
+import { apiManager } from '../../../lib/api-provider-manager';
 
 async function translateText(text: string, targetLang: string): Promise<string> {
   if (!text || targetLang === 'en') return text;
   
-  if (sambaNova) {
-    try {
-      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
-                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
-      
-      const completion = await sambaNova.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
-          },
-          { role: "user", content: text.substring(0, 1500) }
-        ],
-        model: "Meta-Llama-3.3-70B-Instruct",
-        temperature: 0.3,
-      });
-      return (completion as any).choices?.[0]?.message?.content || text;
-    } catch (err: any) {
-      console.log("SambaNova translation failed, trying Groq...", err.message);
-    }
+  try {
+    const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                     'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+    
+    const completion = await apiManager.generateText([
+      {
+        role: "system",
+        content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
+      },
+      { role: "user", content: text.substring(0, 1500) }
+    ], {
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+    
+    return completion.choices[0].message.content || text;
+  } catch (err: any) {
+    console.error("Translation failed:", err.message);
+    return text;
   }
-
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
-                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
-      
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
-          },
-          { role: "user", content: text.substring(0, 1500) }
-        ],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.3,
-      });
-      return completion.choices[0].message.content || text;
-    } catch (err: any) {
-      console.error("All translation providers failed:", err.message);
-    }
-  }
-
-  return text;
 }
 
 const INTERACTION_PROMPT = `
@@ -93,20 +64,18 @@ IMPORTANT: If no clear interactions are found, return "safe" overall risk with a
 async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
   
   try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: INTERACTION_PROMPT
-        },
-        { 
-          role: "user", 
-          content: `Analyze interactions between these drugs: ${drugNames.join(', ')}\n\nFDA Data:\n${JSON.stringify(drugData, null, 2)}` 
-        }
-      ],
-      model: "llama-3.3-70b-versatile",
-      response_format: { type: "json_object" },
+    const completion = await apiManager.generateText([
+      {
+        role: "system",
+        content: INTERACTION_PROMPT
+      },
+      { 
+        role: "user", 
+        content: `Analyze interactions between these drugs: ${drugNames.join(', ')}\n\nFDA Data:\n${JSON.stringify(drugData, null, 2)}` 
+      }
+    ], {
       temperature: 0.3,
+      response_format: { type: "json_object" }
     });
     
     const result = JSON.parse(completion.choices[0].message.content || "{}");

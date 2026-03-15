@@ -1,58 +1,29 @@
 import { NextResponse } from 'next/server';
-import Groq from "groq-sdk";
-import SambaNova from 'sambanova';
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const sambaNova = process.env.SAMBA_NOVA_API_KEY ? new SambaNova({ apiKey: process.env.SAMBA_NOVA_API_KEY }) : null;
+import { apiManager } from '../../../lib/api-provider-manager';
 
 async function translateText(text: string, targetLang: string): Promise<string> {
   if (!text || targetLang === 'en') return text;
   
-  if (sambaNova) {
-    try {
-      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
-                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
-      
-      const completion = await sambaNova.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
-          },
-          { role: "user", content: text.substring(0, 1500) }
-        ],
-        model: "Meta-Llama-3.1-8B-Instruct",
-        temperature: 0.3,
-      });
-      return (completion as any).choices?.[0]?.message?.content || text;
-    } catch (err: any) {
-      console.log("SambaNova translation failed, trying Groq...", err.message);
-    }
+  try {
+    const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
+                     'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
+    
+    const completion = await apiManager.generateText([
+      {
+        role: "system",
+        content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
+      },
+      { role: "user", content: text.substring(0, 1500) }
+    ], {
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+    
+    return completion.choices[0].message.content || text;
+  } catch (err: any) {
+    console.error("Translation failed:", err.message);
+    return text;
   }
-
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const langName = targetLang === 'ar' ? 'Modern Standard Arabic (اللغة العربية الفصحى)' : 
-                       'Sorani Kurdish (کوردی سۆرانی) - written in Arabic script ONLY';
-      
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional medical translator. Translate following text into ${langName}. Maintain medical accuracy and professional terminology.`
-          },
-          { role: "user", content: text.substring(0, 1500) }
-        ],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.3,
-      });
-      return completion.choices[0].message.content || text;
-    } catch (err: any) {
-      console.error("All translation providers failed:", err.message);
-    }
-  }
-
-  return text;
 }
 
 export async function POST(req: Request) {
@@ -89,12 +60,10 @@ export async function POST(req: Request) {
       5. Always respond in English first, then it will be translated.
     `;
 
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      model: "llama-3.3-70b-versatile",
+    const completion = await apiManager.generateText([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ], {
       temperature: 0.3,
       max_tokens: 300
     });
