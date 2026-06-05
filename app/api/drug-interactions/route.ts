@@ -93,7 +93,25 @@ async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
     });
     
     const result = JSON.parse(completion.choices[0].message.content || "{}");
-    console.log('AI Analysis Result:', result);
+    
+    // ✅ NEW CHECK: Normalize the overallRisk so the top badge ALWAYS matches the content
+    if (result.interactions && Array.isArray(result.interactions) && result.interactions.length > 0) {
+      const severities = result.interactions.map((i: any) => i.severity?.toLowerCase().trim());
+      
+      if (severities.includes('critical') || severities.includes('high') || severities.includes('major')) {
+        result.overallRisk = 'critical';
+      } else if (severities.includes('moderate') || severities.includes('medium')) {
+        result.overallRisk = 'moderate';
+      } else if (severities.includes('minor') || severities.includes('low')) {
+        result.overallRisk = 'minor';
+      } else {
+        result.overallRisk = 'minor'; // Fallback to minor if the AI hallucinated a weird severity name
+      }
+    } else if (!result.overallRisk || result.overallRisk === 'unknown') {
+      result.overallRisk = 'safe'; // If no interactions exist, it's safe
+    }
+
+    console.log('Normalized AI Analysis Result:', result);
     return result;
   } catch (err) {
     console.error("AI analysis failed:", err);
