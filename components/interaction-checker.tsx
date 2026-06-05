@@ -219,13 +219,14 @@ export function InteractionChecker() {
 
       const data = await response.json()
 
-      // Handle server error responses safely
-      if (!response.ok || data.overallRisk === "error" || data.error) {
-        const errorMsg = data.error || data.summary?.[language] || data.summary || "System error. Please try again later.";
+      if (!response.ok && !data.overallRisk) {
+        const errorMsg = data.error || "System error. Please try again later.";
         setError(typeof errorMsg === 'string' ? errorMsg : "System execution context failed.");
         setResult(null);
       } else {
-        setResult(data)
+        // This handles "safe", "minor", "moderate", "critical", AND "error" beautifully!
+        setResult(data);
+        setError(null); // Clear the top banner since the UI card will handle it now
       }
     } catch (err) {
       setError("Failed to verify drug interactions. System offline.")
