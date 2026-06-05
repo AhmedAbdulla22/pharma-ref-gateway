@@ -436,19 +436,19 @@ export function InteractionChecker() {
                       )}
                       
                       {Array.isArray(currentRecs) && currentRecs.length > 0 && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 opacity-70">
-                            {language === "en" ? "Recommendation" : language === "ar" ? "التوصيات" : "پێشنیار"}
-                          </p>
-                          <ul className={`text-sm space-y-1.5 ${isRTL ? 'mr-1' : 'ml-1'}`}>
-                            {currentRecs.map((rec, i) => (
-                              <li key={i} className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                                <span className="text-primary mt-1">•</span>
-                                <span>{rec}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3" dir={isRTL ? "rtl" : "ltr"}>
+                            <p className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 opacity-70">
+                              {language === "en" ? "Recommendation" : language === "ar" ? "التوصيات" : "پێشنیار"}
+                            </p>
+                            <ul className="text-sm space-y-1.5 ms-1">
+                              {currentRecs.map((rec, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-primary mt-1">•</span>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                       )}
                     </div>
                   </div>
