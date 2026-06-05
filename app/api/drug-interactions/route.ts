@@ -62,7 +62,6 @@ Response Format:
 IMPORTANT: If no clear interactions are found, return "safe" overall risk with appropriate summary.`;
 
 async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
-  
   try {
     const completion = await apiManager.generateText([
       {
@@ -85,11 +84,11 @@ async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
     console.error("AI analysis failed:", err);
     return {
       interactions: [],
-      overallRisk: "safe",
+      overallRisk: "error", // Captured accurately here
       summary: {
-        en: "Unable to analyze interactions. Please consult a healthcare professional.",
-        ar: "غير قادر على تحليل التفاعلات. يرجى استشارة أخصائي رعاية صحية.",
-        ku: "ناتوانرا لە شیکاری کارلێکەکان. تکایە سەردانی لێپرسراوی تەندروستی بکە."
+        en: "Unable to analyze interactions due to an internal server error. Please consult a healthcare professional.",
+        ar: "غير قادر على تحليل التفاعلات بسبب خطأ داخلي. يرجى استشارة أخصائي رعاية صحية.",
+        ku: "ناتوانرا لە شیکاری کارلێکەکان بەهۆی هەڵەیەکی ناوخۆیی. تکایە سەردانی لێپرسراوی تەندروستی بکە."
       },
       disclaimer: {
         en: "This AI analysis is for informational purposes only and should not replace professional medical advice.",
@@ -101,6 +100,8 @@ async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
 }
 
 function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
+  const normalizedNames = drugNames.map(d => d.toLowerCase().trim());
+
   const drugCategories = validDrugData.map(drug => {
     const openfda = drug[0]?.openfda || {};
     return {
@@ -122,6 +123,31 @@ function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
   );
 
   const interactions = [];
+
+  // FIX 1: Hardcoded Critical Local Safety Matrix (Sildenafil + Nitroglycerin Protection)
+  const isSildenafil = normalizedNames.some(n => n.includes('sildenafil') || n.includes('viagra'));
+  const isNitroglycerin = normalizedNames.some(n => n.includes('nitroglycerin') || n.includes('nitro'));
+
+  if (isSildenafil && isNitroglycerin) {
+    interactions.push({
+      severity: "critical" as const,
+      title: {
+        en: "CRITICAL: Fatal Blood Pressure Drop",
+        ar: "خطر حرج: انخفاض حاد في ضغط الدم",
+        ku: "مەترسیی کوشندە: دابەزینی توندی پەستانی خوێن"
+      },
+      description: {
+        en: "Combining Sildenafil and Nitroglycerin causes a sudden, life-threatening drop in blood pressure. They must NEVER be taken together.",
+        ar: "الجمع بين سيلدينافيل والنيتروجليسرين يسبب انخفاضاً مفاجئاً ومهدداً للحياة في ضغط الدم. لا يجوز تناولهما معاً أبداً.",
+        ku: "تێکەڵکردنی سیڵدینافیل و نایترۆگلیسرین دەبێتە هۆی دابەزینی کتوپڕ و مەترسیداری پەستانی خوێن. نابێت هەرگیز پێکەوە بخورێن."
+      },
+      recommendations: {
+        en: ["Do not take these medications together under any circumstance.", "Contact emergency services immediately if co-administered."],
+        ar: ["لا تتناول هذه الأدوية معاً تحت أي ظرف من الظروف.", "اتصل بالطوارئ فوراً إذا تم تناولهما معاً."],
+        ku: ["ژێر هیچ بارودۆخێکدا ئەم دەرمانانە پێکەوە مەخۆ.", "ئەگەر پێکەوە خوران، دەستبەجێ پەیوەندی بە فریاکەوتنەوە بکە."]
+      }
+    });
+  }
 
   if (hasNSAIDs && hasBloodThinners) {
     interactions.push({
@@ -165,28 +191,29 @@ function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
     });
   }
 
+  // FIX 2: Alter overall risk algorithm. Do not assume 'safe' if no rules matched during a fallback.
   const overallRisk = interactions.length > 0 
-    ? (interactions.some(i => i.severity === 'moderate') ? 'moderate' : 'minor')
-    : 'safe';
+    ? (interactions.some(i => i.severity === 'critical') ? 'critical' : interactions.some(i => i.severity === 'moderate') ? 'moderate' : 'minor')
+    : 'unknown'; // Changed from 'safe' to 'unknown' to alert the UI that validation is partial
 
   return {
     interactions,
     overallRisk,
     summary: {
       en: interactions.length > 0 
-        ? `Found ${interactions.length} potential interaction${interactions.length > 1 ? 's' : ''}.`
-        : "No significant interactions detected between the selected medications.",
+        ? `Fallback System: Found ${interactions.length} localized interaction alerts.`
+        : "Automated analysis offline. Unable to safely verify or guarantee compatibility between these medications.",
       ar: interactions.length > 0
-        ? `تم العثور على ${interactions.length} تفاعل${interactions.length > 1 ? 'ات' : ''} محتمل.`
-        : "لم يتم اكتشاف تفاعلات مهمة بين الأدوية المحددة.",
+        ? `نظام الاحتياط: تم العثور على ${interactions.length} تنبيهات تفاعلية.`
+        : "نظام التحليل التلقائي غير متصل بالشبكة. لا يمكن التحقق من سلامة الأدوية بشكل قاطع.",
       ku: interactions.length > 0
-        ? `${interactions.length} کارلێکی ${interactions.length > 1 ? 'دۆزرایەوە' : 'دۆزرایەوە'}.`
-        : "هیچ کارلێکی گرنگێک لە نێوان دەرمانە دیاریکراوەکاندا نەدۆزرایەوە."
+        ? `سیستەمی یەدەگ: ${interactions.length} ئاگادارکەرەوەی کارلێک دۆزرایەوە.`
+        : "شیکاری ئۆتۆماتیکی دەرەlineە. ناتوانرێت بە سەلامەتی کارلێکی نێوان ئەم دەرمانانە پشتڕاست بکرێتەوە."
     },
     disclaimer: {
-      en: "This analysis is based on FDA drug categories and should not replace professional medical advice. Always consult with healthcare providers.",
-      ar: "هذا التحليل يعتمد على فئات أدوية FDA ولا يجب أن يحل محل المشورة الطبية المهنية. استشر دائما مقدمي الرعاية الصحية.",
-      ku: "ئەم شیکارییە پشتی بە پۆلەکانی دەرمانی FDA دەبەستێت و نابێت جێگەی مشاورەی پزیشکی پیشەگەرە بگرێتەوە. هەمیشە سەردانی لێپرسراوی تەندروستی بکە."
+      en: "This local analysis is a fallback check and should never replace professional medical evaluation. Always consult with a pharmacist or physician.",
+      ar: "هذا التحليل المحلي هو فحص احتياطي ولا ينبغي أن يحل محل التقييم الطبي المهني.",
+      ku: "ئەم شیکارییە ناوخۆییە پشکنینێکی یەدەگە و نابێت هەرگیز جێگەی هەڵسەنگاندنی پزیشکی پیشەگەر بگرێتەوە."
     }
   };
 }
@@ -198,7 +225,7 @@ export async function POST(req: Request) {
     if (!drugs || drugs.length < 2) {
       return NextResponse.json({ 
         interactions: [],
-        overallRisk: "safe",
+        overallRisk: "invalid",
         summary: { en: "Please enter at least 2 drugs to check interactions" },
         disclaimer: {
           en: "This analysis is for informational purposes only and should not replace professional medical advice."
@@ -237,7 +264,7 @@ export async function POST(req: Request) {
         interactions: [],
         overallRisk: "unknown",
         summary: {
-          en: "Insufficient data available for the specified drugs. Please check drug names and try again.",
+          en: "Insufficient active database data available for the specified labels. Please verify drug naming spelling.",
           ar: "بيانات غير كافية متاحة للأدوية المحددة. يرجى التحقق من أسماء الأدوية والمحاولة مرة أخرى.",
           ku: "زانیاری پێویست بۆ دەرمانە دیاریکراوەکان بەردەست نییە. تکایە ناوی دەرمانەکان بپشکنە و دووبارە هەوڵ بدەرەوە."
         },
@@ -255,11 +282,16 @@ export async function POST(req: Request) {
         drugs
       );
       
+      // FIX 3: Catch structural "error" objects and interrupt execution flow immediately 
+      if (analysisResult.overallRisk === "error") {
+        return NextResponse.json(analysisResult, { status: 500 });
+      }
+
       if (analysisResult.interactions && analysisResult.interactions.length > 0) {
         return NextResponse.json(analysisResult);
       }
     } catch (aiError) {
-      console.log('AI analysis failed, using fallback:', aiError);
+      console.log('AI analysis failed, executing defensive local fallback:', aiError);
     }
 
     const fallbackResult = getFallbackAnalysis(drugs, validDrugData);
@@ -271,7 +303,7 @@ export async function POST(req: Request) {
       interactions: [],
       overallRisk: "error",
       summary: {
-        en: "An error occurred while analyzing drug interactions. Please try again.",
+        en: "An unexpected network error occurred while analyzing drug interactions. Please retry.",
         ar: "حدث خطأ أثناء تحليل التفاعلات الدوائية. يرجى المحاولة مرة أخرى.",
         ku: "هەڵەیەک ڕوویدا لە کاتی شیکاری کارلێکی دەرمانەکان. تکایە دووبارە هەوڵ بدەرەوە."
       },
@@ -280,6 +312,6 @@ export async function POST(req: Request) {
         ar: "هذا التحليل بواسطة الذكاء الاصطناعي لأغراض معلوماتية فقط ولا يجب أن يحل محل المشورة الطبية المهنية.",
         ku: "ئەم شیکاریی هوشی دەستکردە تەنها بۆ مەبەستی زانیارییە و نابێت جێگەی مشاورەی پزیشکی پیشەگەرە بگرێتەوە."
       }
-    });
+    }, { status: 500 });
   }
 }
