@@ -170,6 +170,7 @@ export function InteractionChecker() {
   const [result, setResult] = useState<InteractionResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(false) // Debounce protection state
 
   const updateDrug = (index: number, value: string, drug?: Drug) => {
     const newDrugs = [...drugs]
@@ -195,6 +196,7 @@ export function InteractionChecker() {
   }
 
   const checkInteraction = async () => {
+    if (cooldown) return
     const filledDrugs = drugs.filter((d) => d.name.trim())
     
     if (filledDrugs.length < 2) {
@@ -217,17 +219,22 @@ export function InteractionChecker() {
 
       const data = await response.json()
 
-      if (data.error) {
-        setError(data.error)
-        setResult(null)
+      // Handle server error responses safely
+      if (!response.ok || data.overallRisk === "error" || data.error) {
+        const errorMsg = data.error || data.summary?.[language] || data.summary || "System error. Please try again later.";
+        setError(typeof errorMsg === 'string' ? errorMsg : "System execution context failed.");
+        setResult(null);
       } else {
         setResult(data)
       }
-    } catch {
-      setError("Failed to check interactions. Please try again.")
+    } catch (err) {
+      setError("Failed to verify drug interactions. System offline.")
       setResult(null)
     } finally {
       setIsLoading(false)
+      // Enforce a 3-second request throttling window to insulate your API keys from spamming
+      setCooldown(true)
+      setTimeout(() => setCooldown(false), 3000)
     }
   }
 
@@ -278,21 +285,22 @@ export function InteractionChecker() {
           borderClass: "border-green-500",
           badgeVariant: "outline" as const,
         }
+      case "error":
+        return {
+          icon: AlertTriangle,
+          label: language === "en" ? "Error" : language === "ar" ? "خطأ" : "هەڵە",
+          className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+          borderClass: "border-red-500",
+          badgeVariant: "destructive" as const,
+        }
       case "unknown":
+      default:
         return {
           icon: AlertCircle,
           label: language === "en" ? "Unknown" : language === "ar" ? "غير معروف" : "نەزانراو",
           className: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300",
           borderClass: "border-gray-400",
           badgeVariant: "outline" as const,
-        }
-      default:
-        return {
-          icon: AlertTriangle,
-          label: language === "en" ? "Attention" : language === "ar" ? "تنبيه" : "ئاگاداری",
-          className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-          borderClass: "border-gray-300",
-          badgeVariant: "secondary" as const,
         }
     }
   }
@@ -346,13 +354,15 @@ export function InteractionChecker() {
         <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Button
             onClick={checkInteraction}
-            disabled={filledDrugsCount < 2 || isLoading}
-            className={`flex-1 h-12 text-base font-semibold shadow-md transition-all ${filledDrugsCount >= 2 && !isLoading ? "bg-primary hover:bg-primary/90" : ""}`}
+            disabled={filledDrugsCount < 2 || isLoading || cooldown}
+            className={`flex-1 h-12 text-base font-semibold shadow-md transition-all ${filledDrugsCount >= 2 && !isLoading && !cooldown ? "bg-primary hover:bg-primary/90" : ""}`}
           >
             {isLoading ? <Loader2 className={`h-5 w-5 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Zap className={`h-5 w-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />}
             {isLoading
-              ? language === "en" ? "Analyzing..." : language === "ar" ? "جاري التحليل..." : "شیکردنەوە..."
-              : t("checkInteractions")}
+              ? (language === "en" ? "Analyzing..." : language === "ar" ? "جاري التحليل..." : "شیکردنەوە...")
+              : cooldown 
+                ? (language === "en" ? "Wait..." : language === "ar" ? "انتظر..." : "چاوەڕێ بکە...")
+                : t("checkInteractions")}
           </Button>
           
           {filledDrugsCount > 0 && (
@@ -381,45 +391,56 @@ export function InteractionChecker() {
             <div className={`flex items-center justify-between mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
               <h4 className="text-lg font-bold">{t("interactionResult")}</h4>
               <Badge 
-                variant={getSeverityConfig(result.overallRisk).badgeVariant}
+                variant={getSeverityConfig(result.overallRisk || "unknown").badgeVariant}
                 className="px-3 py-1 text-sm uppercase tracking-wide"
               >
-                {getSeverityConfig(result.overallRisk).label}
+                {getSeverityConfig(result.overallRisk || "unknown").label}
               </Badge>
             </div>
 
             {/* AI Summary Box */}
-            <div className={`p-5 rounded-xl bg-muted/40 border border-border/50 mb-6 ${isRTL ? "text-right" : ""}`}>
-              <p className="text-sm leading-relaxed text-foreground/90">{result.summary[language]}</p>
-            </div>
+            {result?.summary && (
+              <div className={`p-5 rounded-xl bg-muted/40 border border-border/50 mb-6 ${isRTL ? "text-right" : ""}`}>
+                <p className="text-sm leading-relaxed text-foreground/90">
+                  {typeof result.summary === 'string' 
+                    ? result.summary 
+                    : (result.summary[language as keyof typeof result.summary] || "Validation summary format unexpected.")}
+                </p>
+              </div>
+            )}
 
             {/* Interactions List */}
             <div className="space-y-4">
-              {result.interactions.map((interaction, index) => {
-                const config = getSeverityConfig(interaction.severity)
+              {Array.isArray(result?.interactions) && result.interactions.map((interaction, index) => {
+                const config = getSeverityConfig(interaction?.severity || "unknown")
                 const Icon = config.icon
+                const currentTitle = interaction?.title?.[language as keyof typeof interaction.title] || "Interaction Warning";
+                const currentDesc = interaction?.description?.[language as keyof typeof interaction.description] || "";
+                const currentRecs = interaction?.recommendations?.[language as keyof typeof interaction.recommendations] || [];
 
                 return (
                   <div key={index} className={`rounded-xl border overflow-hidden bg-card ${config.borderClass} shadow-sm transition-all hover:shadow-md`}>
                     {/* Header */}
                     <div className={`${config.className} px-4 py-3 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <Icon className="h-5 w-5 shrink-0" />
-                      <span className="font-bold text-sm md:text-base">{interaction.title[language]}</span>
+                      <span className="font-bold text-sm md:text-base">{currentTitle}</span>
                     </div>
                     
                     {/* Body */}
                     <div className={`p-5 space-y-4 ${isRTL ? "text-right" : ""}`}>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {interaction.description[language]}
-                      </p>
+                      {currentDesc && (
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {currentDesc}
+                        </p>
+                      )}
                       
-                      {interaction.recommendations[language].length > 0 && (
+                      {Array.isArray(currentRecs) && currentRecs.length > 0 && (
                         <div className="bg-muted/50 rounded-lg p-3">
                           <p className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 opacity-70">
                             {language === "en" ? "Recommendation" : language === "ar" ? "التوصيات" : "پێشنیار"}
                           </p>
                           <ul className={`text-sm space-y-1.5 ${isRTL ? 'mr-1' : 'ml-1'}`}>
-                            {interaction.recommendations[language].map((rec, i) => (
+                            {currentRecs.map((rec, i) => (
                               <li key={i} className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                                 <span className="text-primary mt-1">•</span>
                                 <span>{rec}</span>
@@ -435,10 +456,14 @@ export function InteractionChecker() {
             </div>
 
             {/* Disclaimer */}
-            {result.disclaimer && (
+            {result?.disclaimer && (
               <div className={`mt-6 flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                 <AlertTriangle className="h-4 w-4 shrink-0 opacity-70 mt-0.5" />
-                <p>{result.disclaimer[language]}</p>
+                <p>
+                  {typeof result.disclaimer === 'string' 
+                    ? result.disclaimer 
+                    : (result.disclaimer[language as keyof typeof result.disclaimer] || "")}
+                </p>
               </div>
             )}
           </div>

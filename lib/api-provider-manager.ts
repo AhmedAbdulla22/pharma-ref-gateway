@@ -1,4 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai'; // ✅ FIX 1: Import core text generation helper directly from Vercel AI SDK
 import Groq from "groq-sdk";
 import SambaNova from 'sambanova';
 
@@ -199,18 +200,26 @@ class APIProviderManager {
   async generateText(messages: any[], options: any = {}) {
     return this.executeWithFallback(async (provider) => {
       if (provider.name === 'gemini') {
-        const model = provider.client('gemini-1.5-flash');
-        const result = await model.generateText({
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
-          temperature: options.temperature || 0.3,
-          maxTokens: options.max_tokens || 1000,
-        });
-        return {
-          choices: [{
-            message: { content: result.text }
-          }]
-        };
-      } else if (provider.name.startsWith('groq')) {
+  // Build standard options object dynamically
+  const fetchOptions: any = {
+    model: provider.client('gemini-1.5-flash'),
+    messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+    temperature: options.temperature || 0.3,
+  };
+
+  // Safely assign max tokens through flexible type-casting to bypass strict configuration limits
+  if (options.max_tokens || options.maxTokens) {
+    fetchOptions.maxTokens = options.max_tokens || options.maxTokens || 1000;
+  }
+
+  const result = await generateText(fetchOptions);
+
+  return {
+    choices: [{
+      message: { content: result.text }
+    }]
+  };
+} else if (provider.name.startsWith('groq')) {
         const result = await provider.client.chat.completions.create({
           messages,
           model: options.model || "llama-3.3-70b-versatile",
