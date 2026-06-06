@@ -122,7 +122,7 @@ class APIProviderManager {
   getAvailableProvider(): APIProvider | null {
     // Reset providers that are in cooldown but should be available again
     for (const provider of this.providers) {
-      if (!provider.isAvailable && this.checkCooldown(provider)) {
+      if (!provider.isAvailable && !this.checkCooldown(provider)) {
         if (Date.now() - (provider.lastFailureTime || 0) >= this.cooldownTime) {
           provider.isAvailable = true;
           provider.failureCount = 0;

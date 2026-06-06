@@ -339,13 +339,13 @@ export default function DrugDetailPage() {
         <div className="sticky top-4 z-40 bg-background/90 backdrop-blur-md border border-border rounded-full px-2 py-1.5 shadow-2xl flex items-center justify-between">
            <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar ${isRTL ? "flex-row-reverse" : ""}`}>
               <Button variant="ghost" size="sm" onClick={() => scrollTo('ai-summary')} className="rounded-full text-xs text-primary hover:bg-primary/10">
-                <Sparkles className="h-3.5 w-3.5 mr-1" /> AI Summary
+                <Sparkles className={`h-3.5 w-3.5 ${isRTL ? "ml-1" : "mr-1"}`} /> {t("aiSummary")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => scrollTo('clinical')} className="rounded-full text-xs text-muted-foreground">
-                <FileText className="h-3.5 w-3.5 mr-1" /> Clinical
+                <FileText className={`h-3.5 w-3.5 ${isRTL ? "ml-1" : "mr-1"}`} /> {t("clinical")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => scrollTo('safety')} className="rounded-full text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Safety
+                <ShieldCheck className={`h-3.5 w-3.5 ${isRTL ? "ml-1" : "mr-1"}`} /> {t("safety")}
               </Button>
            </div>
            <div className="hidden md:block px-4 border-l border-border text-[10px] text-muted-foreground font-mono">
@@ -357,7 +357,7 @@ export default function DrugDetailPage() {
         <div id="ai-summary" className="space-y-6 pt-4">
           <div className={`flex items-center gap-2 text-primary border-b border-primary/20 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
             <Sparkles className="h-5 w-5" />
-            <h2 className="text-xl font-bold tracking-wide uppercase">AI Smart Summary</h2>
+            <h2 className="text-xl font-bold tracking-wide uppercase">{t("aiSummary")}</h2>
           </div>
 
           {/* Rate Limit Warning */}
@@ -375,15 +375,15 @@ export default function DrugDetailPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SummaryCard title="Key Uses" icon={<CheckCircle2 className="text-blue-500" />} data={getAiData(drug.aiSummary.uses)} border="border-t-blue-500" />
-            <SummaryCard title="Side Effects" icon={<Thermometer className="text-amber-500" />} data={getAiData(drug.aiSummary.sideEffects)} border="border-t-amber-500" />
-            <SummaryCard title="Dosage Guide" icon={<Activity className="text-emerald-500" />} data={getAiData(drug.aiSummary.dosage)} border="border-t-emerald-500" />
-            <SummaryCard title="Safety Alerts" icon={<AlertTriangle className="text-red-500" />} data={getAiData(drug.aiSummary.warnings)} border="border-t-red-500" />
-            <SummaryCard title="Avoid If..." icon={<ShieldAlert className="text-pink-600" />} data={getAiData(drug.aiSummary.contraindications)} border="border-t-pink-600" />
-            <SummaryCard title="Interactions" icon={<Repeat className="text-purple-500" />} data={getAiData(drug.aiSummary.interactions)} border="border-t-purple-500" />
+            <SummaryCard title={t("keyUses")} icon={<CheckCircle2 className="text-blue-500" />} data={getAiData(drug.aiSummary.uses)} border="border-t-blue-500" />
+            <SummaryCard title={t("sideEffects")} icon={<Thermometer className="text-amber-500" />} data={getAiData(drug.aiSummary.sideEffects)} border="border-t-amber-500" />
+            <SummaryCard title={t("dosageGuide")} icon={<Activity className="text-emerald-500" />} data={getAiData(drug.aiSummary.dosage)} border="border-t-emerald-500" />
+            <SummaryCard title={t("safetyAlerts")} icon={<AlertTriangle className="text-red-500" />} data={getAiData(drug.aiSummary.warnings)} border="border-t-red-500" />
+            <SummaryCard title={t("avoidIf")} icon={<ShieldAlert className="text-pink-600" />} data={getAiData(drug.aiSummary.contraindications)} border="border-t-pink-600" />
+            <SummaryCard title={t("interactions")} icon={<Repeat className="text-purple-500" />} data={getAiData(drug.aiSummary.interactions)} border="border-t-purple-500" />
             <div className="md:col-span-2 lg:col-span-3">
               <SummaryCard 
-                title="Pregnancy & Nursing" 
+                title={t("pregnancyNursing")} 
                 icon={<Baby className="text-rose-400" />} 
                 data={getAiData(drug.aiSummary.pregnancy)} 
                 border="border-t-rose-400 bg-muted/10" 
@@ -398,47 +398,47 @@ export default function DrugDetailPage() {
         <div id="clinical" className="space-y-8">
           <div className={`flex items-center gap-2 text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
             <Stethoscope className="h-5 w-5" />
-            <h2 className="text-xl font-bold tracking-wide uppercase">FDA Clinical Reference</h2>
+            <h2 className="text-xl font-bold tracking-wide uppercase">{t("fdaClinicalReference")}</h2>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Main Clinical Text */}
             <div className="lg:col-span-8 space-y-8">
-               <ClinicalBlock title="Dosage and Administration" icon={<Activity />} content={drug.rawDetails.dosage} color="text-emerald-500" />
-               <ClinicalBlock title="Indications and Usage" icon={<Info />} content={drug.rawDetails.indications} color="text-blue-500" />
-               <ClinicalBlock title="Warnings & Precautions" icon={<AlertTriangle />} content={drug.rawDetails.warnings} color="text-red-500" />
-               <ClinicalBlock title="Adverse Reactions" icon={<Thermometer />} content={drug.rawDetails.adverseReactions} color="text-amber-500" />
+               <ClinicalBlock title={t("dosageAdministration")} icon={<Activity />} content={drug.rawDetails.dosage} color="text-emerald-500" />
+               <ClinicalBlock title={t("indicationsUsage")} icon={<Info />} content={drug.rawDetails.indications} color="text-blue-500" />
+               <ClinicalBlock title={t("warningsPrecautions")} icon={<AlertTriangle />} content={drug.rawDetails.warnings} color="text-red-500" />
+               <ClinicalBlock title={t("adverseReactions")} icon={<Thermometer />} content={drug.rawDetails.adverseReactions} color="text-amber-500" />
             </div>
 
             {/* Side Column: Technical Specs */}
             <div className="lg:col-span-4 space-y-6">
                <Card className="bg-card/30 border-border">
-                  <CardHeader><CardTitle className="text-sm text-muted-foreground uppercase tracking-widest">Ingredients</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-sm text-muted-foreground uppercase tracking-widest">{t("ingredients")}</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                      <div>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Active</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">{t("active")}</span>
                         <p className="text-sm text-foreground">{drug.rawDetails.ingredients.active}</p>
                      </div>
                      <div>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Inactive</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">{t("inactive")}</span>
                         <p className="text-xs text-muted-foreground">{drug.rawDetails.ingredients.inactive}</p>
                      </div>
                   </CardContent>
                </Card>
 
                <div id="safety" className="space-y-4 pt-4">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Population Safety</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">{t("populationSafety")}</h3>
                   <div className="grid gap-4">
-                     <SafetyCard title="Pediatric" content={drug.rawDetails.pediatric} />
-                     <SafetyCard title="Geriatric" content={drug.rawDetails.geriatric} />
-                     <SafetyCard title="Pregnancy" content={drug.rawDetails.pregnancy} />
+                     <SafetyCard title={t("pediatric")} content={drug.rawDetails.pediatric} t={t} />
+                     <SafetyCard title={t("geriatric")} content={drug.rawDetails.geriatric} t={t} />
+                     <SafetyCard title={t("pregnancy")} content={drug.rawDetails.pregnancy} t={t} />
                   </div>
                </div>
 
                <Card className="bg-primary/10 border-primary/20">
                   <CardContent className="p-4 space-y-3">
-                     <div className="flex items-center gap-2 text-primary"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase">Supply & Route</span></div>
-                     <p className="text-xs text-muted-foreground italic">Route: {drug.rawDetails.route}</p>
+                     <div className="flex items-center gap-2 text-primary"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase">{t("supplyRoute")}</span></div>
+                     <p className="text-xs text-muted-foreground italic">{t("route")}: {drug.rawDetails.route}</p>
                      <p className="text-xs text-muted-foreground">{drug.rawDetails.supply}</p>
                   </CardContent>
                </Card>
@@ -499,10 +499,10 @@ function ClinicalBlock({ title, icon, content, color }: any) {
   )
 }
 
-function SafetyCard({ title, content }: any) {
+function SafetyCard({ title, content, t }: any) {
   return (
     <div className="p-3 rounded-lg bg-card border-border">
-      <h5 className="text-[10px] font-bold text-muted-foreground mb-1">{title} Use</h5>
+      <h5 className="text-[10px] font-bold text-muted-foreground mb-1">{title} {t("use")}</h5>
       <p className="text-[11px] text-muted-foreground line-clamp-3 hover:line-clamp-none cursor-pointer">{content}</p>
     </div>
   )
