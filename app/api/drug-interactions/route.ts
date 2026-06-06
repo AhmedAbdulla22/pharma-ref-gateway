@@ -114,21 +114,9 @@ async function aiAnalyzeInteractions(drugData: any[], drugNames: string[]) {
     console.log('Normalized AI Analysis Result:', result);
     return result;
   } catch (err) {
-    console.error("AI analysis failed:", err);
-    return {
-      interactions: [],
-      overallRisk: "error",
-      summary: {
-        en: "Unable to analyze interactions due to an internal server error. Please consult a healthcare professional.",
-        ar: "غير قادر على تحليل التفاعلات بسبب خطأ داخلي. يرجى استشارة أخصائي رعاية صحية.",
-        ku: "ناتوانرا لە شیکاری کارلێکەکان بەهۆی هەڵەیەکی ناوخۆیی. تکایە سەردانی لێپرسراوی تەندروستی بکە."
-      },
-      disclaimer: {
-        en: "This AI analysis is for informational purposes only and should not replace professional medical advice.",
-        ar: "هذا التحليل بواسطة الذكاء الاصطناعي لأغراض معلوماتية فقط ولا يجب أن يحل محل المشورة الطبية المهنية.",
-        ku: "ئەم شیکاریی هوشی دەستکردە تەنها بۆ مەبەستی زانیارییە و نابێت جێگەی مشاورەی پزیشکی پیشەگەرە بگرێتەوە."
-      }
-    };
+    console.error("AI analysis failed, routing to local fallback:", err);
+    
+    throw err; 
   }
 }
 
@@ -136,12 +124,13 @@ function getFallbackAnalysis(drugNames: string[], validDrugData: any[]) {
   const normalizedNames = drugNames.map(d => d.toLowerCase().trim());
 
   const drugCategories = validDrugData.map(drug => {
-    const openfda = drug[0]?.openfda || {};
-    return {
-      name: drugNames[validDrugData.indexOf(drug)],
-      category: openfda.pharm_class_epc?.[0] || openfda.product_type?.[0] || "Unknown"
-    };
-  });
+  // Access the array from the data property safely
+  const openfda = drug.data[0]?.openfda || {}; 
+  return {
+    name: drug.drugName, // Use the explicitly preserved name to ensure alignment
+    category: openfda.pharm_class_epc?.[0] || openfda.product_type?.[0] || "Unknown"
+  };
+});
 
   const hasNSAIDs = drugCategories.some(d => 
     d.category.toLowerCase().includes('nonsteroidal anti-inflammatory') || 
@@ -316,16 +305,12 @@ export async function POST(req: Request) {
       // PAYLOAD REDUCTION: Map massive data blocks into slim, optimized data objects
       const minimizedData = validDrugData.map(r => minimizeFdaData(r.data));
 
-      const analysisResult = await aiAnalyzeInteractions(
-        minimizedData, 
-        drugs
-      );
+      const analysisResult = await aiAnalyzeInteractions(minimizedData, drugs);
       
-      if (analysisResult.overallRisk === "error") {
-        return NextResponse.json(analysisResult, { status: 500 });
-      }
-
-      if (analysisResult.interactions && analysisResult.interactions.length > 0) {
+      if (
+        (analysisResult.interactions && analysisResult.interactions.length > 0) || 
+        analysisResult.overallRisk === "safe"
+      ) {
         return NextResponse.json(analysisResult);
       }
     } catch (aiError) {
