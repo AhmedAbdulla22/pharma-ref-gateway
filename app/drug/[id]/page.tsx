@@ -449,7 +449,7 @@ export default function DrugDetailPage() {
         {/* --- SECTION: MEDICAL DISCLAIMER --- */}
         <Card className={`bg-red-950/10 border-red-900/20 mt-12 ${isRTL ? "text-right" : "text-left"}`}>
           <CardContent className={`p-6 flex gap-4 items-start ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
-            <AlertTriangle className="h-6 w-6 text-red-600 shrink-0 mt-1" />
+            <AlertTriangle className={`h-6 w-6 text-red-600 shrink-0 mt-1 ${isRTL ? "scale-x-[-1]" : ""}`} />
             <div className="space-y-2">
               <h4 className="text-red-500 font-bold uppercase text-xs tracking-widest">{t("medicalDisclaimer")}</h4>
               <p className="text-[11px] text-muted-foreground leading-relaxed uppercase tracking-tight">{t("disclaimerText")}</p>

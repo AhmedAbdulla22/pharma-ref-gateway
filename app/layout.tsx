@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono, Tajawal } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LanguageProvider } from "@/components/providers/language-provider"
-import { ThemeProvider } from "@/components/providers/theme-provider"
-import "./globals.css"
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
