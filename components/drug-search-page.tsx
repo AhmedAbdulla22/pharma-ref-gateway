@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { PageWrapper } from "@/components/page-wrapper"
 import { DrugCard } from "@/components/drug-card"
@@ -21,11 +21,12 @@ export function DrugSearchPage() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [similarDrugs, setSimilarDrugs] = useState<any[]>([])
   const [alternatives, setAlternatives] = useState<any[]>([])
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const query = searchParams.get('q')
     const results = searchParams.get('results')
-    
+
     if (query && results) {
       try {
         const parsedResults = JSON.parse(decodeURIComponent(results))
@@ -75,6 +76,25 @@ export function DrugSearchPage() {
       setIsLoading(false)
     }
   }
+
+  // Debounced auto-search
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch()
+      }
+    }, 500)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [searchQuery, language])
 
   return (
     <PageWrapper>
